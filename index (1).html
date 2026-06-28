@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IELTS Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700&display=swap');
+
+  :root {
+    --navy: #0f1e3c;
+    --navy-mid: #1a3260;
+    --blue: #2563eb;
+    --blue-light: #3b82f6;
+    --cyan: #06b6d4;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --bg: #f0f4ff;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(15,30,60,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── LOADING ── */
+  #screen-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--navy);
+  }
+  .loader-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .loader-logo h1 {
+    font-family: 'Sora', sans-serif;
+    color: #fff;
+    font-size: 2rem;
+    letter-spacing: -0.5px;
+  }
+  .loader-logo span { color: var(--cyan); }
+  .spin {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── AUTH ── */
+  #screen-login {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1e3a8a 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .auth-card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .auth-logo .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .auth-logo h1 {
+    font-family: 'Sora', sans-serif;
+    color: #fff;
+    font-size: 2.2rem;
+    line-height: 1.1;
+  }
+  .auth-logo h1 span { color: var(--cyan); }
+  .auth-logo p { color: rgba(255,255,255,0.55); margin-top: 8px; font-size: 14px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+  .form-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 13px 16px;
+    color: #fff;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input::placeholder { color: rgba(255,255,255,0.3); }
+  .form-group input:focus { border-color: var(--cyan); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary {
+    background: var(--blue);
+    color: #fff;
+    width: 100%;
+  }
+  .btn-primary:hover { background: var(--blue-light); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    padding: 8px 0;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-ghost:hover { color: #fff; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #059669; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  .error-msg {
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* ── APP SHELL (student + admin) ── */
+  .app-nav {
+    background: var(--navy);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo {
+    font-family: 'Sora', sans-serif;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .nav-logo span { color: var(--cyan); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-user {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+  }
+  .nav-user strong { color: #fff; }
+  .btn-nav-logout {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-nav-logout:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  /* ── STUDENT AREA ── */
+  #screen-student { background: var(--bg); }
+  #screen-student .content { flex: 1; padding: 32px 24px; max-width: 860px; margin: 0 auto; width: 100%; }
+
+  .page-header { margin-bottom: 28px; }
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .breadcrumb a {
+    color: var(--blue);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .page-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .page-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* skill tabs */
+  .skill-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .skill-tab {
+    padding: 7px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .skill-tab.active, .skill-tab:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: #eff6ff;
+  }
+  .skill-tab[data-skill="writing"].active { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
+  .skill-tab[data-skill="reading"].active { border-color: var(--green); color: var(--green); background: #ecfdf5; }
+  .skill-tab[data-skill="listening"].active { border-color: var(--gold); color: #d97706; background: #fffbeb; }
+  .skill-tab[data-skill="vocabulary"].active { border-color: var(--cyan); color: #0891b2; background: #ecfeff; }
+
+  /* lesson / task cards */
+  .card-grid { display: grid; gap: 16px; }
+  .item-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .item-card:hover {
+    border-color: var(--blue);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+  }
+  .item-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .icon-writing { background: #f5f3ff; color: #7c3aed; }
+  .icon-reading { background: #ecfdf5; color: var(--green); }
+  .icon-listening { background: #fffbeb; color: #d97706; }
+  .icon-vocabulary { background: #ecfeff; color: #0891b2; }
+
+  .item-body { flex: 1; }
+  .item-title { font-weight: 600; font-size: 15px; color: var(--text); }
+  .item-meta { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .item-arrow { color: var(--muted); font-size: 18px; }
+
+  .skill-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .pill-writing { background: #f5f3ff; color: #7c3aed; }
+  .pill-reading { background: #ecfdf5; color: var(--green); }
+  .pill-listening { background: #fffbeb; color: #d97706; }
+  .pill-vocabulary { background: #ecfeff; color: #0891b2; }
+
+  /* task view */
+  .task-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .task-prompt {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    background: #f8faff;
+  }
+  .task-prompt h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 12px; }
+  .task-prompt p { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-line; }
+  .task-answer { padding: 24px; }
+  .task-answer label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .task-answer textarea {
+    width: 100%;
+    min-height: 220px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .task-answer textarea:focus { border-color: var(--blue); }
+  .word-count { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .task-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .submitted-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ecfdf5;
+    color: var(--green);
+    border: 1px solid #a7f3d0;
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .feedback-card {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .feedback-card h4 { font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 6px; }
+  .feedback-card p { font-size: 14px; color: #78350f; line-height: 1.6; }
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--gold);
+    color: #fff;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-right: 10px;
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+  /* ── ADMIN AREA ── */
+  #screen-admin { background: var(--bg); }
+  #screen-admin .content { flex: 1; padding: 32px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+  .admin-grid { display: grid; grid-template-columns: 260px 1fr; gap: 24px; }
+  .admin-sidebar {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: fit-content;
+  }
+  .sidebar-header {
+    padding: 16px 20px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .sidebar-item {
+    padding: 14px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sidebar-item:last-child { border-bottom: none; }
+  .sidebar-item:hover, .sidebar-item.active {
+    background: #eff6ff;
+    color: var(--blue);
+  }
+  .sidebar-item .count {
+    margin-left: auto;
+    background: var(--bg);
+    color: var(--muted);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .admin-main { }
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  /* table */
+  .data-table {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .data-table table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: #f8fafc; }
+
+  /* modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 { font-family: 'Sora', sans-serif; font-size: 1.3rem; margin-bottom: 20px; color: var(--navy); }
+  .modal .form-group label { color: var(--text); }
+  .modal .form-group input,
+  .modal .form-group select,
+  .modal .form-group textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    outline: none;
+    background: #fff;
+    transition: border-color 0.2s;
+  }
+  .modal .form-group input:focus,
+  .modal .form-group select:focus,
+  .modal .form-group textarea:focus { border-color: var(--blue); }
+  .modal .form-group textarea { min-height: 100px; resize: vertical; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .modal-footer .btn { width: auto; }
+  .modal .btn-primary { background: var(--blue); color: #fff; }
+
+  /* stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .stat-card .label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-card .value { font-family: 'Sora', sans-serif; font-size: 2rem; font-weight: 700; color: var(--navy); }
+  .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* submission view */
+  .submission-view {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .submission-text {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+    margin: 12px 0;
+  }
+  .score-input { display: flex; gap: 10px; align-items: center; }
+  .score-input input { width: 100px; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--navy);
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+
+  .loading-inline {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  @media (max-width: 700px) {
+    .admin-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .auth-card { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="screen-loading" class="screen active">
+  <div class="loader-logo">
+    <h1>IELTS <span>Pro</span></h1>
+    <div class="spin"></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="badge">✦ IELTS Pro</div>
+      <h1>Welcome <span>back</span></h1>
+      <p>Enter your student ID to continue</p>
+    </div>
+    <div id="login-error" class="error-msg">Student not found. Check your name and ID.</div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="input-name" placeholder="e.g. Ibrat Kuchkarov"/>
+    </div>
+    <div class="form-group">
+      <label>Student ID</label>
+      <input type="text" id="input-code" placeholder="e.g. 6370218"/>
+    </div>
+    <button class="btn btn-primary" onclick="studentLogin()">Enter Platform</button>
+    <button class="btn btn-ghost" onclick="showAdminLogin()">Admin Panel →</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="screen-admin-login" class="screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="badge">⚙ Admin</div>
+      <h1>Admin <span>Panel</span></h1>
+      <p>Enter your admin credentials</p>
+    </div>
+    <div id="admin-login-error" class="error-msg">Incorrect credentials.</div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="input-admin-user" placeholder="admin"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="input-admin-pass" placeholder="••••••••"/>
+    </div>
+    <button class="btn btn-primary" onclick="adminLogin()">Enter Admin Panel</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-login')">← Back to Student Login</button>
+  </div>
+</div>
+
+<!-- STUDENT AREA -->
+<div id="screen-student" class="screen">
+  <nav class="app-nav">
+    <div class="nav-logo">IELTS <span>Pro</span></div>
+    <div class="nav-right">
+      <div class="nav-user">Logged in as <strong id="nav-student-name"></strong></div>
+      <button class="btn-nav-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="content">
+    <!-- LESSONS VIEW -->
+    <div id="view-lessons">
+      <div class="page-header">
+        <div class="page-title">Your Lessons</div>
+        <div class="page-sub">Select a lesson to start practising</div>
+      </div>
+      <div class="skill-tabs" id="skill-tabs">
+        <div class="skill-tab active" data-skill="all" onclick="filterLessons('all',this)">All</div>
+        <div class="skill-tab" data-skill="writing" onclick="filterLessons('writing',this)">✍ Writing</div>
+        <div class="skill-tab" data-skill="reading" onclick="filterLessons('reading',this)">📖 Reading</div>
+        <div class="skill-tab" data-skill="listening" onclick="filterLessons('listening',this)">🎧 Listening</div>
+        <div class="skill-tab" data-skill="vocabulary" onclick="filterLessons('vocabulary',this)">📚 Vocabulary</div>
+      </div>
+      <div class="card-grid" id="lessons-list"></div>
+    </div>
+
+    <!-- TASKS VIEW -->
+    <div id="view-tasks" style="display:none">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a onclick="backToLessons()">← Lessons</a>
+        </div>
+        <div class="page-title" id="tasks-lesson-title"></div>
+        <div class="page-sub" id="tasks-lesson-desc"></div>
+      </div>
+      <div class="card-grid" id="tasks-list"></div>
+    </div>
+
+    <!-- TASK VIEW -->
+    <div id="view-task" style="display:none">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a onclick="backToLessons()">Lessons</a>
+          <span>›</span>
+          <a onclick="backToTasks()" id="breadcrumb-lesson"></a>
+          <span>›</span>
+          <span id="breadcrumb-task"></span>
+        </div>
+      </div>
+      <div class="task-card">
+        <div class="task-prompt">
+          <h3>Task Prompt</h3>
+          <p id="task-content"></p>
+        </div>
+        <div class="task-answer">
+          <label>Your Answer</label>
+          <textarea id="task-textarea" placeholder="Write your answer here..." oninput="updateWordCount()"></textarea>
+          <div class="word-count" id="word-count">0 words</div>
+          <div id="feedback-area"></div>
+        </div>
+        <div class="task-footer">
+          <div id="submit-status"></div>
+          <button class="btn btn-success" id="submit-btn" onclick="submitTask()">Submit Answer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN AREA -->
+<div id="screen-admin" class="screen">
+  <nav class="app-nav">
+    <div class="nav-logo">IELTS <span>Pro</span> <span style="color:rgba(255,255,255,0.4);font-size:12px;font-weight:400;margin-left:8px;">Admin</span></div>
+    <div class="nav-right">
+      <button class="btn-nav-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="content">
+    <div class="stats-row" id="admin-stats"></div>
+    <div class="admin-grid">
+      <div class="admin-sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <div class="sidebar-item active" onclick="adminNav('groups',this)">👥 Groups</div>
+        <div class="sidebar-item" onclick="adminNav('students',this)">🎓 Students</div>
+        <div class="sidebar-item" onclick="adminNav('lessons',this)">📋 Lessons</div>
+        <div class="sidebar-item" onclick="adminNav('submissions',this)">📝 Submissions</div>
+      </div>
+      <div class="admin-main">
+        <!-- GROUPS -->
+        <div id="admin-groups" class="admin-section active">
+          <div class="section-header">
+            <div class="section-title">Groups</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('group')">+ Add Group</button>
+          </div>
+          <div id="groups-table"></div>
+        </div>
+        <!-- STUDENTS -->
+        <div id="admin-students" class="admin-section">
+          <div class="section-header">
+            <div class="section-title">Students</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('student')">+ Add Student</button>
+          </div>
+          <div id="students-table"></div>
+        </div>
+        <!-- LESSONS -->
+        <div id="admin-lessons" class="admin-section">
+          <div class="section-header">
+            <div class="section-title">Lessons & Tasks</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('lesson')">+ Add Lesson</button>
+          </div>
+          <div id="lessons-table"></div>
+        </div>
+        <!-- SUBMISSIONS -->
+        <div id="admin-submissions" class="admin-section">
+          <div class="section-header">
+            <div class="section-title">Student Submissions</div>
+          </div>
+          <div id="submissions-table"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-box">
+    <h2 id="modal-title">Add</h2>
+    <div id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMISSION MODAL -->
+<div class="modal-overlay" id="sub-modal-overlay" onclick="closeSubModal(event)">
+  <div class="modal" style="max-width:640px" id="sub-modal-box">
+    <h2 id="sub-modal-title">Submission</h2>
+    <div id="sub-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSubModal()">Close</button>
+      <button class="btn btn-success" onclick="saveScore()">Save Feedback</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://nmwtpcbczurxrxcgpxyn.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5td3RwY2JjenVyeHJ4Y2dweHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjY0NjEsImV4cCI6MjA5ODI0MjQ2MX0.2FfyPGHCnmqBAmra259XqGhSznQeA-nVPtCpQDJVe18';
+
+const api = async (path, opts = {}) => {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': `Bearer ${SUPA_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...opts.headers
+    },
+    ...opts
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'API error'); }
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+};
+
+const get = (path) => api(path, { method: 'GET' });
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
+const patch = (path, body) => api(path, { method: 'PATCH', body: JSON.stringify(body), prefer: 'return=representation' });
+const del = (path) => api(path, { method: 'DELETE' });
+
+// STATE
+let state = {
+  student: null,
+  lessons: [],
+  allLessons: [],
+  currentLesson: null,
+  currentTask: null,
+  currentSubmission: null,
+  groups: [],
+  students: [],
+  adminLessons: [],
+  submissions: [],
+  modalType: null,
+  editId: null,
+  currentSubId: null
+};
+
+// SCREENS
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showAdminLogin() { showScreen('screen-admin-login'); }
+function logout() {
+  state.student = null;
+  showScreen('screen-login');
+}
+
+// TOAST
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// STUDENT LOGIN
+async function studentLogin() {
+  const name = document.getElementById('input-name').value.trim();
+  const code = document.getElementById('input-code').value.trim();
+  if (!name || !code) return toast('Enter your name and ID', 'error');
+  try {
+    const students = await get(`students?name=ilike.${encodeURIComponent(name)}&student_code=eq.${code}&select=*,groups(name)`);
+    if (!students.length) {
+      document.getElementById('login-error').classList.add('show');
+      return;
+    }
+    document.getElementById('login-error').classList.remove('show');
+    state.student = students[0];
+    document.getElementById('nav-student-name').textContent = state.student.name;
+    showScreen('screen-student');
+    loadLessons();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ADMIN LOGIN
+async function adminLogin() {
+  const user = document.getElementById('input-admin-user').value.trim();
+  const pass = document.getElementById('input-admin-pass').value.trim();
+  try {
+    const admins = await get(`admins?username=eq.${user}&password=eq.${pass}`);
+    if (!admins.length) {
+      document.getElementById('admin-login-error').classList.add('show');
+      return;
+    }
+    document.getElementById('admin-login-error').classList.remove('show');
+    showScreen('screen-admin');
+    loadAdminData();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// LESSONS
+async function loadLessons() {
+  document.getElementById('lessons-list').innerHTML = '<div class="loading-inline">Loading lessons...</div>';
+  const lessons = await get('lessons?select=*&order=order.asc');
+  state.allLessons = lessons;
+  state.lessons = lessons;
+  renderLessons(lessons);
+}
+
+function filterLessons(skill, el) {
+  document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = skill === 'all' ? state.allLessons : state.allLessons.filter(l => l.skill === skill);
+  renderLessons(filtered);
+}
+
+const skillIcon = { writing: '✍️', reading: '📖', listening: '🎧', vocabulary: '📚' };
+
+function renderLessons(lessons) {
+  const el = document.getElementById('lessons-list');
+  if (!lessons.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No lessons yet</h3><p>Ask your teacher to add lessons.</p></div>`;
+    return;
+  }
+  el.innerHTML = lessons.map(l => `
+    <div class="item-card" onclick="openLesson('${l.id}')">
+      <div class="item-icon icon-${l.skill}">${skillIcon[l.skill]}</div>
+      <div class="item-body">
+        <div class="item-title">${l.title}</div>
+        <div class="item-meta"><span class="skill-pill pill-${l.skill}">${l.skill}</span> ${l.description || ''}</div>
+      </div>
+      <div class="item-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+async function openLesson(id) {
+  const lesson = state.allLessons.find(l => l.id === id);
+  state.currentLesson = lesson;
+  document.getElementById('tasks-lesson-title').textContent = lesson.title;
+  document.getElementById('tasks-lesson-desc').textContent = lesson.description || '';
+  document.getElementById('view-lessons').style.display = 'none';
+  document.getElementById('view-tasks').style.display = 'block';
+  document.getElementById('view-task').style.display = 'none';
+  document.getElementById('tasks-list').innerHTML = '<div class="loading-inline">Loading tasks...</div>';
+  const tasks = await get(`tasks?lesson_id=eq.${id}&order=order.asc`);
+  renderTasks(tasks);
+}
+
+function renderTasks(tasks) {
+  const el = document.getElementById('tasks-list');
+  if (!tasks.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No tasks yet</h3></div>`;
+    return;
+  }
+  el.innerHTML = tasks.map((t, i) => `
+    <div class="item-card" onclick="openTask('${t.id}')">
+      <div class="item-icon icon-${state.currentLesson.skill}" style="font-size:14px;font-weight:700;">${i+1}</div>
+      <div class="item-body">
+        <div class="item-title">${t.title}</div>
+        <div class="item-meta">${t.task_type || 'task'}</div>
+      </div>
+      <div class="item-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+async function openTask(id) {
+  const tasks = await get(`tasks?id=eq.${id}`);
+  const task = tasks[0];
+  state.currentTask = task;
+  document.getElementById('breadcrumb-lesson').textContent = state.currentLesson.title;
+  document.getElementById('breadcrumb-task').textContent = task.title;
+  document.getElementById('task-content').textContent = task.content;
+  document.getElementById('view-lessons').style.display = 'none';
+  document.getElementById('view-tasks').style.display = 'none';
+  document.getElementById('view-task').style.display = 'block';
+
+  // check for existing submission
+  const subs = await get(`submissions?student_id=eq.${state.student.id}&task_id=eq.${id}&order=submitted_at.desc&limit=1`);
+  const sub = subs[0] || null;
+  state.currentSubmission = sub;
+
+  const textarea = document.getElementById('task-textarea');
+  const submitBtn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('submit-status');
+  const feedbackEl = document.getElementById('feedback-area');
+
+  if (sub) {
+    textarea.value = sub.answer;
+    textarea.disabled = true;
+    submitBtn.style.display = 'none';
+    statusEl.innerHTML = `<span class="submitted-badge">✓ Submitted</span>`;
+    let fb = '';
+    if (sub.score !== null && sub.score !== undefined) {
+      fb += `<span class="score-badge">Band ${sub.score}</span>`;
+    }
+    if (sub.feedback) {
+      feedbackEl.innerHTML = `
+        <div class="feedback-card">
+          <h4>📝 Teacher Feedback</h4>
+          <p>${sub.feedback}</p>
+        </div>`;
+    }
+    if (sub.score !== null) statusEl.innerHTML = `${fb}<span class="submitted-badge">✓ Submitted</span>`;
+  } else {
+    textarea.value = '';
+    textarea.disabled = false;
+    submitBtn.style.display = 'flex';
+    statusEl.innerHTML = '';
+    feedbackEl.innerHTML = '';
+  }
+  updateWordCount();
+}
+
+function updateWordCount() {
+  const text = document.getElementById('task-textarea').value.trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  document.getElementById('word-count').textContent = `${words} word${words !== 1 ? 's' : ''}`;
+}
+
+async function submitTask() {
+  const answer = document.getElementById('task-textarea').value.trim();
+  if (!answer) return toast('Write your answer first!', 'error');
+  try {
+    await post('submissions', {
+      student_id: state.student.id,
+      task_id: state.currentTask.id,
+      answer
+    });
+    toast('Submitted! ✓', 'success');
+    openTask(state.currentTask.id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function backToLessons() {
+  document.getElementById('view-lessons').style.display = 'block';
+  document.getElementById('view-tasks').style.display = 'none';
+  document.getElementById('view-task').style.display = 'none';
+}
+function backToTasks() {
+  document.getElementById('view-lessons').style.display = 'none';
+  document.getElementById('view-tasks').style.display = 'block';
+  document.getElementById('view-task').style.display = 'none';
+}
+
+// ── ADMIN ──
+async function loadAdminData() {
+  const [groups, students, lessons, submissions] = await Promise.all([
+    get('groups?order=name.asc'),
+    get('students?select=*,groups(name)&order=name.asc'),
+    get('lessons?order=order.asc'),
+    get('submissions?select=*,students(name,student_code),tasks(title,lessons(title))&order=submitted_at.desc')
+  ]);
+  state.groups = groups;
+  state.students = students;
+  state.adminLessons = lessons;
+  state.submissions = submissions;
+
+  renderAdminStats();
+  renderGroupsTable();
+  renderStudentsTable();
+  renderLessonsTable();
+  renderSubmissionsTable();
+}
+
+function renderAdminStats() {
+  const reviewed = state.submissions.filter(s => s.score !== null).length;
+  document.getElementById('admin-stats').innerHTML = `
+    <div class="stat-card"><div class="label">Groups</div><div class="value">${state.groups.length}</div></div>
+    <div class="stat-card"><div class="label">Students</div><div class="value">${state.students.length}</div></div>
+    <div class="stat-card"><div class="label">Lessons</div><div class="value">${state.adminLessons.length}</div></div>
+    <div class="stat-card"><div class="label">Submissions</div><div class="value">${state.submissions.length}</div><div class="sub">${reviewed} reviewed</div></div>
+  `;
+}
+
+function renderGroupsTable() {
+  const el = document.getElementById('groups-table');
+  if (!state.groups.length) { el.innerHTML = `<div class="empty-state"><h3>No groups yet</h3></div>`; return; }
+  el.innerHTML = `<div class="data-table"><table>
+    <tr><th>Group Name</th><th>Students</th><th>Actions</th></tr>
+    ${state.groups.map(g => {
+      const count = state.students.filter(s => s.group_id === g.id).length;
+      return `<tr>
+        <td><strong>${g.name}</strong></td>
+        <td>${count} student${count !== 1 ? 's' : ''}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openModal('group','${g.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="deleteItem('groups','${g.id}')">Delete</button></td>
+      </tr>`;
+    }).join('')}
+  </table></div>`;
+}
+
+function renderStudentsTable() {
+  const el = document.getElementById('students-table');
+  if (!state.students.length) { el.innerHTML = `<div class="empty-state"><h3>No students yet</h3></div>`; return; }
+  el.innerHTML = `<div class="data-table"><table>
+    <tr><th>Name</th><th>Student ID</th><th>Group</th><th>Actions</th></tr>
+    ${state.students.map(s => `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td><code>${s.student_code}</code></td>
+      <td>${s.groups?.name || '—'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openModal('student','${s.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="deleteItem('students','${s.id}')">Delete</button></td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+function renderLessonsTable() {
+  const el = document.getElementById('lessons-table');
+  if (!state.adminLessons.length) { el.innerHTML = `<div class="empty-state"><h3>No lessons yet</h3></div>`; return; }
+  el.innerHTML = `<div class="data-table"><table>
+    <tr><th>Title</th><th>Skill</th><th>Order</th><th>Actions</th></tr>
+    ${state.adminLessons.map(l => `<tr>
+      <td><strong>${l.title}</strong><br><small style="color:var(--muted)">${l.description||''}</small></td>
+      <td><span class="skill-pill pill-${l.skill}">${l.skill}</span></td>
+      <td>${l.order}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openModal('task',null,'${l.id}')">+ Task</button>
+        <button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="openModal('lesson','${l.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('lessons','${l.id}')">Delete</button>
+      </td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+function renderSubmissionsTable() {
+  const el = document.getElementById('submissions-table');
+  if (!state.submissions.length) { el.innerHTML = `<div class="empty-state"><h3>No submissions yet</h3></div>`; return; }
+  el.innerHTML = `<div class="data-table"><table>
+    <tr><th>Student</th><th>Task</th><th>Submitted</th><th>Score</th><th>Actions</th></tr>
+    ${state.submissions.map(s => `<tr>
+      <td><strong>${s.students?.name||'?'}</strong><br><small>${s.students?.student_code||''}</small></td>
+      <td>${s.tasks?.title||'?'}<br><small style="color:var(--muted)">${s.tasks?.lessons?.title||''}</small></td>
+      <td>${new Date(s.submitted_at).toLocaleDateString()}</td>
+      <td>${s.score !== null && s.score !== undefined ? `<span class="score-badge">Band ${s.score}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openSubmission('${s.id}')">Review</button></td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+// ADMIN NAV
+function adminNav(section, el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`admin-${section}`).classList.add('active');
+}
+
+// MODAL
+function openModal(type, editId = null, parentId = null) {
+  state.modalType = type;
+  state.editId = editId;
+  state.parentId = parentId;
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+
+  if (type === 'group') {
+    const g = editId ? state.groups.find(x => x.id === editId) : null;
+    title.textContent = editId ? 'Edit Group' : 'Add Group';
+    body.innerHTML = `<div class="form-group"><label>Group Name</label><input id="m-name" value="${g?.name||''}"/></div>`;
+  } else if (type === 'student') {
+    const s = editId ? state.students.find(x => x.id === editId) : null;
+    title.textContent = editId ? 'Edit Student' : 'Add Student';
+    const groupOpts = state.groups.map(g => `<option value="${g.id}" ${s?.group_id===g.id?'selected':''}>${g.name}</option>`).join('');
+    body.innerHTML = `
+      <div class="form-group"><label>Full Name</label><input id="m-name" value="${s?.name||''}"/></div>
+      <div class="form-group"><label>Student ID</label><input id="m-code" value="${s?.student_code||''}"/></div>
+      <div class="form-group"><label>Group</label><select id="m-group"><option value="">No group</option>${groupOpts}</select></div>
+    `;
+  } else if (type === 'lesson') {
+    const l = editId ? state.adminLessons.find(x => x.id === editId) : null;
+    title.textContent = editId ? 'Edit Lesson' : 'Add Lesson';
+    body.innerHTML = `
+      <div class="form-group"><label>Title</label><input id="m-title" value="${l?.title||''}"/></div>
+      <div class="form-group"><label>Skill</label>
+        <select id="m-skill">
+          ${['writing','reading','listening','vocabulary'].map(sk => `<option value="${sk}" ${l?.skill===sk?'selected':''}>${sk}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Description</label><input id="m-desc" value="${l?.description||''}"/></div>
+      <div class="form-group"><label>Order</label><input type="number" id="m-order" value="${l?.order||0}"/></div>
+    `;
+  } else if (type === 'task') {
+    title.textContent = 'Add Task';
+    body.innerHTML = `
+      <div class="form-group"><label>Task Title</label><input id="m-title" placeholder="e.g. Describe the graph"/></div>
+      <div class="form-group"><label>Task Content / Prompt</label><textarea id="m-content" style="min-height:120px" placeholder="Write the task instructions here..."></textarea></div>
+      <div class="form-group"><label>Order</label><input type="number" id="m-order" value="1"/></div>
+    `;
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+async function saveModal() {
+  const type = state.modalType;
+  try {
+    if (type === 'group') {
+      const name = document.getElementById('m-name').value.trim();
+      if (!name) return toast('Enter group name', 'error');
+      if (state.editId) await patch(`groups?id=eq.${state.editId}`, { name });
+      else await post('groups', { name });
+    } else if (type === 'student') {
+      const name = document.getElementById('m-name').value.trim();
+      const code = document.getElementById('m-code').value.trim();
+      const group_id = document.getElementById('m-group').value || null;
+      if (!name || !code) return toast('Name and ID required', 'error');
+      if (state.editId) await patch(`students?id=eq.${state.editId}`, { name, student_code: code, group_id });
+      else await post('students', { name, student_code: code, group_id });
+    } else if (type === 'lesson') {
+      const title = document.getElementById('m-title').value.trim();
+      const skill = document.getElementById('m-skill').value;
+      const description = document.getElementById('m-desc').value.trim();
+      const order = parseInt(document.getElementById('m-order').value) || 0;
+      if (!title) return toast('Title required', 'error');
+      if (state.editId) await patch(`lessons?id=eq.${state.editId}`, { title, skill, description, order });
+      else await post('lessons', { title, skill, description, order });
+    } else if (type === 'task') {
+      const title = document.getElementById('m-title').value.trim();
+      const content = document.getElementById('m-content').value.trim();
+      const order = parseInt(document.getElementById('m-order').value) || 1;
+      if (!title || !content) return toast('Title and content required', 'error');
+      await post('tasks', { lesson_id: state.parentId, title, content, order });
+    }
+    closeModal();
+    toast('Saved!', 'success');
+    loadAdminData();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteItem(table, id) {
+  if (!confirm('Delete this item?')) return;
+  try {
+    await del(`${table}?id=eq.${id}`);
+    toast('Deleted', 'success');
+    loadAdminData();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// SUBMISSION REVIEW
+function openSubmission(id) {
+  const sub = state.submissions.find(s => s.id === id);
+  state.currentSubId = id;
+  document.getElementById('sub-modal-title').textContent = `Review: ${sub.students?.name}`;
+  document.getElementById('sub-modal-body').innerHTML = `
+    <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${sub.tasks?.title}</strong></p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</p>
+    <div class="submission-text">${sub.answer}</div>
+    <div class="form-group" style="margin-top:16px">
+      <label>Band Score</label>
+      <input type="number" id="score-input" min="1" max="9" step="0.5" value="${sub.score||''}" placeholder="e.g. 6.5" style="border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;font-family:Inter,sans-serif;width:100%;outline:none"/>
+    </div>
+    <div class="form-group">
+      <label>Feedback</label>
+      <textarea id="feedback-input" style="border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;font-family:Inter,sans-serif;width:100%;min-height:100px;outline:none;resize:vertical">${sub.feedback||''}</textarea>
+    </div>
+  `;
+  document.getElementById('sub-modal-overlay').classList.add('open');
+}
+
+async function saveScore() {
+  const score = parseFloat(document.getElementById('score-input').value) || null;
+  const feedback = document.getElementById('feedback-input').value.trim() || null;
+  try {
+    await patch(`submissions?id=eq.${state.currentSubId}`, { score, feedback });
+    toast('Feedback saved!', 'success');
+    closeSubModal();
+    loadAdminData();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function closeSubModal(e) {
+  if (!e || e.target === document.getElementById('sub-modal-overlay'))
+    document.getElementById('sub-modal-overlay').classList.remove('open');
+}
+
+// KEYBOARD SHORTCUTS
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('screen-login').classList.contains('active')) studentLogin();
+    if (document.getElementById('screen-admin-login').classList.contains('active')) adminLogin();
+  }
+  if (e.key === 'Escape') { closeModal(); closeSubModal(); }
+});
+
+// INIT
+window.addEventListener('load', () => {
+  setTimeout(() => showScreen('screen-login'), 800);
+});
+</script>
+</body>
+</html>
