@@ -88,6 +88,23 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 #screen-student { background: var(--bg); }
 #screen-student .content { flex: 1; padding: 32px 24px; max-width: 1000px; margin: 0 auto; width: 100%; }
 
+/* TASK VIEW — intentionally breaks out of the 1000px content cap above so
+   reading/listening/writing's two-column layouts get real screen width to
+   work with, instead of being squeezed into the dashboard's reading-width
+   column. Dashboard and lesson-list views are unaffected.
+   Only applies the pull-out margin once the viewport is wide enough that
+   .content is actually centered with margin (i.e. >1000px) — below that,
+   .content already spans the full viewport, so no correction is needed
+   and applying one would cause horizontal overflow. */
+@media (min-width: 1001px) {
+  #view-task {
+    max-width: none;
+    width: calc(100vw - 48px);
+    margin-left: calc(-50vw + 500px);
+    margin-right: calc(-50vw + 500px);
+  }
+}
+
 /* DASHBOARD */
 .welcome-banner {
   background: linear-gradient(135deg, var(--navy) 0%, var(--indigo) 100%);
