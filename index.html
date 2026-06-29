@@ -257,13 +257,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .tfng-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .tfng-btn { padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--card); color: var(--muted); transition: all 0.2s; }
 .tfng-btn:hover { border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-T { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-F { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-N { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-NG { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-Not_Given { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-Yes { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-No { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
 .tfng-btn.correct { background: #dcfce7 !important; border-color: var(--green) !important; color: #15803d !important; }
 .tfng-btn.wrong { background: #fef2f2 !important; border-color: var(--red) !important; color: #dc2626 !important; }
 .tfng-btn:disabled { cursor: default; }
@@ -949,7 +943,7 @@ function renderReadingTask(task, sub, area) {
             const safeKey=o.replace(/\s+/g,'_');
             const isSelected = saved===o;
             const correct = q.answer||'';
-            let cls = isSelected?`selected-${safeKey}`:'';
+            let cls = isSelected ? 'selected' : '';
             if(isSubmitted && isSelected) cls = saved===correct?'correct':'wrong';
             if(isSubmitted && o===correct && !isSelected) cls='correct';
             return `<button class="tfng-btn ${cls}" id="qa_${qi}_${o}" ${isSubmitted?'disabled':''} onclick="selectTFNG(${qi},'${o}')">${o}</button>`;
@@ -1186,9 +1180,9 @@ function selectTableItem(qi, ii, value){}
 
 function selectTFNG(qi, val) {
   if(S.currentSubmission) return;
-  const opts=['True','False','Not Given'];
-  opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b){b.className='tfng-btn';} });
-  const b=document.getElementById(`qa_${qi}_${val}`); if(b) b.classList.add(`selected-${val.replace(/\s+/g,'_')}`);
+  const opts=['True','False','Not Given','Yes','No'];
+  opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b) b.classList.remove('selected'); });
+  const b=document.getElementById(`qa_${qi}_${val}`); if(b) b.classList.add('selected');
 }
 
 function selectMCQ(qi, letter) {
