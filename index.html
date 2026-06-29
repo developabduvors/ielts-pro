@@ -211,6 +211,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
 /* READING TASK */
 .reading-task-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.reading-split { display: grid; grid-template-columns: 1fr 1fr; min-height: 500px; }
+.reading-passage-col { border-right: 1.5px solid var(--border); padding: 20px 24px; line-height: 1.7; overflow-y: auto; max-height: 70vh; }
+.reading-questions-col { padding: 24px; overflow-y: auto; max-height: 70vh; }
+@media (max-width: 800px) {
+  .reading-split { grid-template-columns: 1fr; }
+  .reading-passage-col { border-right: none; border-bottom: 1.5px solid var(--border); max-height: 300px; }
+  .reading-questions-col { max-height: none; }
+}
 .reading-open-btn { display: flex; align-items: center; gap: 16px; padding: 28px; border-bottom: 1px solid var(--border); background: #f0fdf4; cursor: pointer; transition: background 0.2s; }
 .reading-open-btn:hover { background: #dcfce7; }
 .reading-open-icon { width: 52px; height: 52px; background: var(--green); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
@@ -232,9 +240,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .tfng-group { display: flex; gap: 8px; }
 .tfng-btn { padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--card); color: var(--muted); transition: all 0.2s; }
 .tfng-btn:hover { border-color: var(--blue); color: var(--blue); }
-.tfng-btn.selected-T { background: #dcfce7; border-color: var(--green); color: #15803d; }
-.tfng-btn.selected-F { background: #fef2f2; border-color: var(--red); color: #dc2626; }
-.tfng-btn.selected-NG { background: #fef3c7; border-color: var(--gold); color: #b45309; }
+.tfng-btn.selected-T { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-F { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-NG { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
 .tfng-btn.correct { background: #dcfce7 !important; border-color: var(--green) !important; color: #15803d !important; }
 .tfng-btn.wrong { background: #fef2f2 !important; border-color: var(--red) !important; color: #dc2626 !important; }
 .tfng-btn:disabled { cursor: default; }
@@ -260,14 +268,19 @@ audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.1); }
 
 /* WRITING TASK */
 .writing-task-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.writing-prompt { padding: 24px; border-bottom: 1px solid var(--border); background: #faf5ff; }
+.writing-split { display: grid; grid-template-columns: 1fr 1fr; min-height: 500px; }
+.writing-prompt { padding: 24px; border-right: 1.5px solid var(--border); background: #faf5ff; overflow-y: auto; max-height: 70vh; }
 .writing-prompt h3 { font-size: 14px; font-weight: 700; color: #6d28d9; margin-bottom: 10px; }
-.writing-prompt p { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-line; }
-.writing-area { padding: 24px; }
+.writing-prompt p { font-size: 17px; line-height: 1.8; color: var(--text); white-space: pre-line; font-weight: 500; }
+.writing-area { padding: 24px; display: flex; flex-direction: column; }
 .writing-area label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-.writing-area textarea { width: 100%; min-height: 240px; border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 16px; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); resize: vertical; outline: none; transition: border-color 0.2s; }
+.writing-area textarea { width: 100%; flex: 1; min-height: 240px; border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 16px; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--text); resize: vertical; outline: none; transition: border-color 0.2s; }
 .writing-area textarea:focus { border-color: var(--purple); }
 .writing-area textarea:disabled { background: #f8fafc; color: var(--muted); }
+@media (max-width: 800px) {
+  .writing-split { grid-template-columns: 1fr; }
+  .writing-prompt { border-right: none; border-bottom: 1.5px solid var(--border); max-height: 320px; }
+}
 .word-count { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .task-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .submitted-badge { display: inline-flex; align-items: center; gap: 6px; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 100px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
@@ -517,7 +530,7 @@ audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.1); }
     <div id="sub-modal-body"></div>
     <div class="modal-footer">
       <button class="btn btn-outline btn-sm" onclick="closeSubModal()">Close</button>
-      <button class="btn btn-success btn-sm" onclick="saveScore()">Save Feedback</button>
+      <button class="btn btn-success btn-sm" id="sub-save-btn" onclick="saveScore()">Save Feedback</button>
     </div>
   </div>
 </div>
@@ -920,34 +933,69 @@ function renderReadingTask(task, sub, area) {
         </div>
         ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-left:34px;margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
       </div>`;
+    } else if(q.type==='short_answer') {
+      qHtml += `<div class="q-item">
+        <div class="q-num">${qi+1}</div>
+        <div style="flex:1">
+          <div class="q-label" style="margin-bottom:6px">${q.question||''}</div>
+          <input class="q-input${isSubmitted?(saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim()?' correct':' wrong'):''}"
+            id="qa_${qi}" value="${saved}" ${isSubmitted?'disabled':''} placeholder="Your answer"/>
+          ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+        </div>
+      </div>`;
+    } else if(q.type==='matching') {
+      const items = q.items||[];
+      const matchOptions = q.matchOptions||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div class="q-label">${q.question||''}</div>
+        </div>
+        <div style="margin-left:34px;width:100%">
+          <div class="hint-text" style="margin-bottom:8px">Options: ${matchOptions.map((o,oi)=>`<strong>${oi+1}.</strong> ${o}`).join('&nbsp;&nbsp;')}</div>
+          ${items.map((it,ii)=>{
+            const itemSaved = savedMatch[ii]||'';
+            const isCorrect = itemSaved===it.answer;
+            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+              <span style="min-width:140px">${it.label}</span>
+              <select id="qa_${qi}_${ii}" ${isSubmitted?'disabled':''} onchange="selectMatching(${qi},${ii},this.value)"
+                class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):''}" style="${isSubmitted?'':'width:auto;display:inline-block'}">
+                <option value="">Choose…</option>
+                ${matchOptions.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${itemSaved===o?'selected':''}>${o}</option>`).join('')}
+              </select>
+              ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">Answer: <strong>${it.answer}</strong></span>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
     }
   });
 
   // score if submitted
   let scoreHtml = '';
   if(isSubmitted) {
-    let correct=0;
-    questions.forEach((q,qi)=>{
-      const saved = savedAnswers[qi]||'';
-      if(q.type==='gap_fill' && saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim()) correct++;
-      else if((q.type==='tfng'||q.type==='mcq') && saved===(q.answer||'')) correct++;
-    });
+    const {correct, total} = gradeQuestions(questions, savedAnswers);
     scoreHtml = `<div class="result-bar">
-      <div class="result-score">Score: <span class="correct">${correct}</span><span class="total">/${questions.length}</span> correct</div>
+      <div class="result-score">Score: <span class="correct">${correct}</span><span class="total">/${total}</span> correct</div>
       <span class="submitted-badge">✓ Submitted</span>
     </div>`;
   }
 
   area.innerHTML = `<div class="reading-task-card">
-    ${passageHtml?`<div class="reading-passage" style="padding:20px 24px;border-bottom:1px solid var(--border);line-height:1.7;max-height:340px;overflow-y:auto">${passageHtml}</div>`
-      :passageUrl?`<div class="reading-open-btn" onclick="window.open('${passageUrl}','_blank')">
-      <div class="reading-open-icon">📄</div>
-      <div class="reading-open-text"><h3>Open Reading Passage</h3><p>Click to open the passage in a new tab, then answer the questions below.</p></div>
-      <div class="reading-open-arrow">↗</div>
-    </div>`:'<div style="padding:20px 24px;background:#f0fdf4;border-bottom:1px solid var(--border);color:#166534;font-size:13px;">⚠ No passage added yet.</div>'}
-    <div class="reading-questions">
-      <h4>Questions — ${task.title}</h4>
-      ${qHtml||'<div class="empty-state"><div class="icon">📭</div><h3>No questions added yet</h3></div>'}
+    <div class="reading-split">
+      <div class="reading-passage-col">
+        ${passageHtml?passageHtml
+          :passageUrl?`<div class="reading-open-btn" onclick="window.open('${passageUrl}','_blank')">
+          <div class="reading-open-icon">📄</div>
+          <div class="reading-open-text"><h3>Open Reading Passage</h3><p>Click to open the passage in a new tab.</p></div>
+          <div class="reading-open-arrow">↗</div>
+        </div>`:'<div style="color:#166534;font-size:13px;">⚠ No passage added yet.</div>'}
+      </div>
+      <div class="reading-questions-col">
+        <h4>Questions — ${task.title}</h4>
+        ${qHtml||'<div class="empty-state"><div class="icon">📭</div><h3>No questions added yet</h3></div>'}
+      </div>
     </div>
     ${!isSubmitted && questions.length>0?`<div class="task-footer">
       <div></div>
@@ -964,6 +1012,37 @@ function renderReadingTask(task, sub, area) {
       if(saved && q.type==='mcq') { const el=document.getElementById(`qa_${qi}_${saved}`); if(el) el.classList.add('selected'); }
     });
   }
+}
+
+// Shared grading logic for reading/listening submissions — used both to
+// show a live score to the student and to compute the score saved to the
+// database, so what the admin sees in Submissions matches what the
+// student saw. `answers` is keyed by question index; for 'matching'
+// questions the value at that index is itself an object keyed by item index.
+function gradeQuestions(questions, answers){
+  let correct=0, total=0;
+  questions.forEach((q,qi)=>{
+    const saved = answers[qi];
+    if(q.type==='matching'){
+      const items=q.items||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      items.forEach((it,ii)=>{ total++; if((savedMatch[ii]||'')===it.answer) correct++; });
+      return;
+    }
+    total++;
+    if(q.type==='gap_fill' || q.type==='short_answer'){
+      if((saved||'').toString().toLowerCase().trim()===(q.answer||'').toLowerCase().trim()) correct++;
+    } else if(q.type==='tfng' || q.type==='mcq'){
+      if(saved===(q.answer||'')) correct++;
+    }
+  });
+  return {correct, total};
+}
+
+function selectMatching(qi, ii, value){
+  // Selection state lives in the <select> element itself; this hook exists
+  // so submit-time collection can read directly from the DOM, matching the
+  // pattern used by gap_fill/short_answer inputs.
 }
 
 function selectTFNG(qi, val) {
@@ -986,17 +1065,23 @@ async function submitReadingTask() {
   const questions=data.questions||[];
   const answers={};
   questions.forEach((q,qi)=>{
-    if(q.type==='gap_fill'){ const inp=document.getElementById(`qa_${qi}`); answers[qi]=inp?inp.value.trim():''; }
+    if(q.type==='gap_fill' || q.type==='short_answer'){ const inp=document.getElementById(`qa_${qi}`); answers[qi]=inp?inp.value.trim():''; }
     else if(q.type==='tfng'){
       ['True','False','Not Given'].forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b&&b.classList.contains(`selected-${o[0]}`)) answers[qi]=o; });
     } else if(q.type==='mcq'){
       const opts=q.options||[];
       opts.forEach((_,oi)=>{ const l=String.fromCharCode(65+oi); const el=document.getElementById(`qa_${qi}_${l}`); if(el&&el.classList.contains('selected')) answers[qi]=l; });
+    } else if(q.type==='matching'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((it,ii)=>{ const sel=document.getElementById(`qa_${qi}_${ii}`); if(sel) itemAnswers[ii]=sel.value; });
+      answers[qi]=itemAnswers;
     }
   });
+  const {correct, total} = gradeQuestions(questions, answers);
   try {
-    await post('submissions',{student_id:S.student.id, task_id:task.id, answer:JSON.stringify(answers)});
-    toast('Submitted! ✓','success');
+    await post('submissions',{student_id:S.student.id, task_id:task.id, answer:JSON.stringify(answers), score:correct, total});
+    toast(`Submitted! Score: ${correct}/${total} ✓`,'success');
     await loadStudentData();
     openTask(task.id);
   } catch(e){ toast(e.message,'error'); }
@@ -1046,18 +1131,49 @@ function renderListeningTask(task, sub, area) {
         </div>
         ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-left:34px;margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
       </div>`;
+    } else if(q.type==='short_answer'){
+      qHtml+=`<div class="q-item">
+        <div class="q-num">${qi+1}</div>
+        <div style="flex:1">
+          <div class="q-label" style="margin-bottom:6px">${q.question||''}</div>
+          <input class="q-input${isSubmitted?(saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim()?' correct':' wrong'):''}"
+            id="lqa_${qi}" value="${saved}" ${isSubmitted?'disabled':''} placeholder="Your answer"/>
+          ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+        </div>
+      </div>`;
+    } else if(q.type==='matching'){
+      const items=q.items||[];
+      const matchOptions=q.matchOptions||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      qHtml+=`<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div class="q-label">${q.question||''}</div>
+        </div>
+        <div style="margin-left:34px;width:100%">
+          <div class="hint-text" style="margin-bottom:8px">Options: ${matchOptions.map((o,oi)=>`<strong>${oi+1}.</strong> ${o}`).join('&nbsp;&nbsp;')}</div>
+          ${items.map((it,ii)=>{
+            const itemSaved=savedMatch[ii]||'';
+            const isCorrect=itemSaved===it.answer;
+            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+              <span style="min-width:140px">${it.label}</span>
+              <select id="lqa_${qi}_${ii}" ${isSubmitted?'disabled':''}
+                class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):''}" style="${isSubmitted?'':'width:auto;display:inline-block'}">
+                <option value="">Choose…</option>
+                ${matchOptions.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${itemSaved===o?'selected':''}>${o}</option>`).join('')}
+              </select>
+              ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">Answer: <strong>${it.answer}</strong></span>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
     }
   });
 
   let scoreHtml='';
   if(isSubmitted){
-    let correct=0;
-    questions.forEach((q,qi)=>{
-      const saved=savedAnswers[qi]||'';
-      if(q.type==='gap_fill'&&saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim())correct++;
-      else if(q.type==='mcq'&&saved===(q.answer||''))correct++;
-    });
-    scoreHtml=`<div class="result-bar"><div class="result-score">Score: <span class="correct">${correct}</span><span class="total">/${questions.length}</span> correct</div><span class="submitted-badge">✓ Submitted</span></div>`;
+    const {correct, total} = gradeQuestions(questions, savedAnswers);
+    scoreHtml=`<div class="result-bar"><div class="result-score">Score: <span class="correct">${correct}</span><span class="total">/${total}</span> correct</div><span class="submitted-badge">✓ Submitted</span></div>`;
   }
 
   area.innerHTML=`<div class="listening-task-card">
@@ -1088,15 +1204,21 @@ async function submitListeningTask() {
   const questions=data.questions||[];
   const answers={};
   questions.forEach((q,qi)=>{
-    if(q.type==='gap_fill'){const inp=document.getElementById(`lqa_${qi}`);answers[qi]=inp?inp.value.trim():'';}
+    if(q.type==='gap_fill'||q.type==='short_answer'){const inp=document.getElementById(`lqa_${qi}`);answers[qi]=inp?inp.value.trim():'';}
     else if(q.type==='mcq'){
       const opts=q.options||[];
       opts.forEach((_,oi)=>{const l=String.fromCharCode(65+oi);const el=document.getElementById(`lqa_${qi}_${l}`);if(el&&el.classList.contains('selected'))answers[qi]=l;});
+    } else if(q.type==='matching'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((it,ii)=>{ const sel=document.getElementById(`lqa_${qi}_${ii}`); if(sel) itemAnswers[ii]=sel.value; });
+      answers[qi]=itemAnswers;
     }
   });
+  const {correct, total} = gradeQuestions(questions, answers);
   try {
-    await post('submissions',{student_id:S.student.id,task_id:task.id,answer:JSON.stringify(answers)});
-    toast('Submitted! ✓','success');
+    await post('submissions',{student_id:S.student.id,task_id:task.id,answer:JSON.stringify(answers),score:correct,total});
+    toast(`Submitted! Score: ${correct}/${total} ✓`,'success');
     await loadStudentData();
     openTask(task.id);
   } catch(e){ toast(e.message,'error'); }
@@ -1111,15 +1233,17 @@ function renderWritingTask(task, sub, area) {
   const isSubmitted=!!sub;
 
   area.innerHTML=`<div class="writing-task-card">
-    <div class="writing-prompt">
-      <h3>✍️ Writing Prompt</h3>
-      ${imageUrl?`<img src="${imageUrl}" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"/>`:''}
-      <p>${prompt}</p>
-    </div>
-    <div class="writing-area">
-      <label>Your Response (minimum ${minWords} words)</label>
-      <textarea id="writing-ta" ${isSubmitted?'disabled':''} oninput="updateWC()" placeholder="Write your answer here...">${isSubmitted?sub.answer:''}</textarea>
-      <div class="word-count" id="wc-display">${isSubmitted?countWords(sub.answer)+' words':'0 words'}</div>
+    <div class="writing-split">
+      <div class="writing-prompt">
+        <h3>✍️ Writing Prompt</h3>
+        <p>${prompt}</p>
+        ${imageUrl?`<img src="${imageUrl}" style="max-width:100%;border-radius:10px;margin-top:14px;display:block"/>`:''}
+      </div>
+      <div class="writing-area">
+        <label>Your Response (minimum ${minWords} words)</label>
+        <textarea id="writing-ta" ${isSubmitted?'disabled':''} oninput="updateWC()" placeholder="Write your answer here...">${isSubmitted?sub.answer:''}</textarea>
+        <div class="word-count" id="wc-display">${isSubmitted?countWords(sub.answer)+' words':'0 words'}</div>
+      </div>
     </div>
     ${isSubmitted&&sub.feedback?`<div class="feedback-card"><h4>📝 Teacher Feedback</h4><p>${sub.feedback}</p></div>`:''}
     <div class="task-footer">
@@ -1272,27 +1396,52 @@ async function moveTask(idA, idB){
 }
 
 function renderSubmissionsTable(){
-  const writingSubs=S.adminSubs.filter(s=>s.tasks?.skill==='writing');
+  const filter = S.subsFilter || 'all';
+  const allSubs = S.adminSubs||[];
+  const subs = filter==='all' ? allSubs : allSubs.filter(s=>s.tasks?.skill===filter);
   const el=document.getElementById('submissions-table');
-  if(!writingSubs.length){el.innerHTML='<div class="empty-state"><div class="icon">✉</div><h3>No writing submissions yet</h3></div>';return;}
-  el.innerHTML=`<div class="data-table"><table><tr><th>Student</th><th>Task</th><th>Submitted</th><th>Score</th><th>Actions</th></tr>
-    ${writingSubs.map(s=>`<tr>
-      <td><strong>${s.students?.name||'?'}</strong><br><small style="color:var(--muted)">${s.students?.student_code||''}</small></td>
-      <td>${s.tasks?.title||'?'}<br><small style="color:var(--muted)">${s.tasks?.lessons?.title||''}</small></td>
-      <td style="font-size:13px">${new Date(s.submitted_at).toLocaleDateString()}</td>
-      <td>${s.score!==null&&s.score!==undefined?`<span class="score-badge">Band ${s.score}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="openSubmission('${s.id}')">Review</button></td>
-    </tr>`).join('')}
+
+  const tabs = ['all','reading','listening','writing'].map(f=>
+    `<button class="btn ${filter===f?'btn-primary':'btn-outline'} btn-sm" onclick="setSubsFilter('${f}')">${f==='all'?'All':f[0].toUpperCase()+f.slice(1)}</button>`
+  ).join(' ');
+
+  if(!subs.length){
+    el.innerHTML=`<div style="margin-bottom:14px">${tabs}</div><div class="empty-state"><div class="icon">✉</div><h3>No ${filter==='all'?'':filter+' '}submissions yet</h3></div>`;
+    return;
+  }
+
+  el.innerHTML=`<div style="margin-bottom:14px">${tabs}</div><div class="data-table"><table><tr><th>Student</th><th>Skill</th><th>Task</th><th>Submitted</th><th>Score</th><th>Actions</th></tr>
+    ${subs.map(s=>{
+      const skill = s.tasks?.skill||'?';
+      let scoreCell;
+      if(skill==='reading'||skill==='listening'){
+        scoreCell = (s.score!==null&&s.score!==undefined&&s.total!==null&&s.total!==undefined)
+          ? `<span class="score-badge" style="background:var(--green)">${s.score}/${s.total}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+      } else {
+        scoreCell = (s.score!==null&&s.score!==undefined) ? `<span class="score-badge">Band ${s.score}</span>` : '<span style="color:var(--muted)">—</span>';
+      }
+      return `<tr>
+        <td><strong>${s.students?.name||'?'}</strong><br><small style="color:var(--muted)">${s.students?.student_code||''}</small></td>
+        <td><span class="skill-pill pill-${skill}">${skill}</span></td>
+        <td>${s.tasks?.title||'?'}<br><small style="color:var(--muted)">${s.tasks?.lessons?.title||''}</small></td>
+        <td style="font-size:13px">${new Date(s.submitted_at).toLocaleDateString()}</td>
+        <td>${scoreCell}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openSubmission('${s.id}')">${skill==='writing'?'Review':'View'}</button></td>
+      </tr>`;
+    }).join('')}
   </table></div>`;
 }
+
+function setSubsFilter(f){ S.subsFilter=f; renderSubmissionsTable(); }
 
 function adminNav(section,el){ document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active')); document.getElementById(`admin-${section}`).classList.add('active'); }
 
 // ── MODAL ──
 // ── TASK MODAL: skill-specific fields ──
-// Reading & Listening: upload a self-contained interactive HTML file
-// (stored in Supabase Storage), embedded via iframe for students.
-// Writing: dedicated title/instructions/time-limit fields, no JSON needed.
+// Reading: rich-text passage + native question builder (gap_fill/tfng/mcq/matching/short_answer).
+// Listening: audio upload + the same question builder (minus TFNG).
+// Writing: prompt/instructions + optional image, min word count, time limit.
 // Vocabulary (or anything else): falls back to the raw JSON editor.
 function onTaskSkillChange(){
   const skill=document.getElementById('m-skill').value;
@@ -1304,6 +1453,7 @@ function onTaskSkillChange(){
 // {type, question, options, answer} shape the existing student-side
 // grading engine (renderReadingTask/renderListeningTask) already expects.
 let TASK_QUESTIONS = [];
+let TASK_QUESTIONS_SKILL = 'reading';
 
 function renderTaskSkillFields(skill, t){
   const el=document.getElementById('task-skill-fields');
@@ -1323,6 +1473,7 @@ function renderTaskSkillFields(skill, t){
         <div class="hint-text">Paste or type the passage. Use the buttons above for basic formatting.</div>
       </div>
       <div id="question-builder"></div>`;
+    TASK_QUESTIONS_SKILL = 'reading';
     renderQuestionBuilder();
   } else if(skill==='listening'){
     el.innerHTML = `
@@ -1336,6 +1487,7 @@ function renderTaskSkillFields(skill, t){
         <input id="m-instructions" value="${data.instructions||''}" placeholder="e.g. Listen carefully and fill in the gaps below."/>
       </div>
       <div id="question-builder"></div>`;
+    TASK_QUESTIONS_SKILL = 'listening';
     renderQuestionBuilder();
   } else if(skill==='writing'){
     el.innerHTML = `
@@ -1364,16 +1516,19 @@ function renderTaskSkillFields(skill, t){
   }
 }
 
-// ── QUESTION BUILDER (mixed types: gap_fill / tfng / mcq) ──
+// ── QUESTION BUILDER (mixed types: gap_fill / tfng / mcq / matching / short_answer) ──
 function renderQuestionBuilder(){
   const el=document.getElementById('question-builder');
   if(!el) return;
+  const showTfng = TASK_QUESTIONS_SKILL==='reading';
   el.innerHTML = `<div class="form-group"><label>Questions</label>
     <div id="question-list">${TASK_QUESTIONS.map((q,qi)=>questionEditorHtml(q,qi)).join('')||'<div class="hint-text">No questions yet — add one below.</div>'}</div>
-    <div style="display:flex;gap:8px;margin-top:10px">
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('gap_fill')">+ Gap Fill</button>
-      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('tfng')">+ True/False/NG</button>
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('tfng')">+ True/False/NG</button>`:''}
       <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('mcq')">+ Multiple Choice</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('matching')">+ Matching</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('short_answer')">+ Short Answer</button>
     </div>
   </div>`;
 }
@@ -1386,7 +1541,7 @@ function questionEditorHtml(q, qi){
     </div>
     <input placeholder="Question text" value="${(q.question||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'question',this.value)" style="margin-bottom:8px"/>`;
 
-  if(q.type==='gap_fill'){
+  if(q.type==='gap_fill' || q.type==='short_answer'){
     return common + `<input placeholder="Correct answer" value="${(q.answer||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'answer',this.value)"/></div>`;
   }
   if(q.type==='tfng'){
@@ -1395,7 +1550,8 @@ function questionEditorHtml(q, qi){
     </select></div>`;
   }
   if(q.type==='mcq'){
-    const opts = q.options && q.options.length ? q.options : ['','','',''];
+    const defaultCount = TASK_QUESTIONS_SKILL==='listening' ? 3 : 4;
+    const opts = q.options && q.options.length ? q.options : Array(defaultCount).fill('');
     return common + opts.map((o,oi)=>{
       const letter=String.fromCharCode(65+oi);
       return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
@@ -1405,12 +1561,68 @@ function questionEditorHtml(q, qi){
       </div>`;
     }).join('') + `</div>`;
   }
+  if(q.type==='matching'){
+    // q.items: list of {label, answer} pairs, e.g. "Paragraph A" -> "iii"
+    // q.matchOptions: the shared pool of options students choose from (e.g. headings i-vii)
+    const items = q.items && q.items.length ? q.items : [{label:'',answer:''}];
+    const matchOptions = q.matchOptions && q.matchOptions.length ? q.matchOptions : ['',''];
+    return common + `
+      <div class="hint-text" style="margin-bottom:6px">Option pool students choose from:</div>
+      ${matchOptions.map((o,oi)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span style="font-weight:600;width:22px">${oi+1}.</span>
+        <input placeholder="Option text" value="${(o||'').replace(/"/g,'&quot;')}" oninput="updateMatchOption(${qi},${oi},this.value)" style="flex:1"/>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeMatchOption(${qi},${oi})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="addMatchOption(${qi})" style="margin-bottom:10px">+ Option</button>
+      <div class="hint-text" style="margin-bottom:6px">Items to match, with their correct option text:</div>
+      ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input placeholder="Item (e.g. Paragraph A)" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="updateMatchItem(${qi},${ii},'label',this.value)" style="flex:1"/>
+        <select onchange="updateMatchItem(${qi},${ii},'answer',this.value)" style="flex:1">
+          <option value="">Correct option…</option>
+          ${matchOptions.map(o=>`<option value="${(o||'').replace(/"/g,'&quot;')}" ${it.answer===o?'selected':''}>${o||'(empty)'}</option>`).join('')}
+        </select>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeMatchItem(${qi},${ii})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="addMatchItem(${qi})">+ Item</button>
+    </div>`;
+  }
   return common + `</div>`;
+}
+
+function addMatchItem(qi){ TASK_QUESTIONS[qi].items=TASK_QUESTIONS[qi].items||[]; TASK_QUESTIONS[qi].items.push({label:'',answer:''}); renderQuestionBuilder(); }
+function removeMatchItem(qi,ii){ TASK_QUESTIONS[qi].items.splice(ii,1); renderQuestionBuilder(); }
+function updateMatchItem(qi,ii,field,value){ TASK_QUESTIONS[qi].items[ii][field]=value; if(field!=='answer') renderQuestionBuilder(); }
+function addMatchOption(qi){ TASK_QUESTIONS[qi].matchOptions=TASK_QUESTIONS[qi].matchOptions||[]; TASK_QUESTIONS[qi].matchOptions.push(''); renderQuestionBuilder(); }
+function removeMatchOption(qi,oi){ TASK_QUESTIONS[qi].matchOptions.splice(oi,1); renderQuestionBuilder(); }
+function updateMatchOption(qi,oi,value){ TASK_QUESTIONS[qi].matchOptions[oi]=value; }
+
+// Validates the in-progress question list before save. Returns an error
+// message string if something's wrong, or null if everything checks out.
+function validateQuestions(questions){
+  for(const q of questions){
+    if(!q.question.trim()) return 'Every question needs question text';
+    if(q.type==='mcq'){
+      if(q.options.some(o=>!o.trim())) return 'Fill in all multiple-choice options';
+      if(!q.answer) return 'Pick the correct option for every multiple-choice question';
+    } else if(q.type==='matching'){
+      if(!q.matchOptions || q.matchOptions.some(o=>!o.trim())) return 'Fill in all matching options (the pool students choose from)';
+      if(!q.items || q.items.length===0) return 'Add at least one item to match';
+      for(const it of q.items){
+        if(!it.label.trim()) return 'Every matching item needs a label';
+        if(!it.answer) return 'Every matching item needs a correct option selected';
+      }
+    } else {
+      // gap_fill, tfng, short_answer — all use a single top-level answer
+      if(!q.answer || !String(q.answer).trim()) return 'Every question needs a correct answer set';
+    }
+  }
+  return null;
 }
 
 function addQuestion(type){
   const base = {type, question:'', answer:''};
-  if(type==='mcq') base.options = ['','','',''];
+  if(type==='mcq') base.options = Array(TASK_QUESTIONS_SKILL==='listening'?3:4).fill('');
+  if(type==='matching'){ base.items=[{label:'',answer:''}]; base.matchOptions=['','']; delete base.answer; }
   TASK_QUESTIONS.push(base);
   renderQuestionBuilder();
 }
@@ -1533,22 +1745,16 @@ async function saveModal(){
       if(skill==='reading'){
         const passage_html = document.getElementById('m-passage').innerHTML;
         if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
-        for(const q of TASK_QUESTIONS){
-          if(!q.question.trim()) return toast('Every question needs question text','error');
-          if(q.type==='mcq' && q.options.some(o=>!o.trim())) return toast('Fill in all multiple-choice options','error');
-          if(!q.answer || !String(q.answer).trim()) return toast('Every question needs a correct answer set','error');
-        }
+        const err = validateQuestions(TASK_QUESTIONS);
+        if(err) return toast(err,'error');
         payload.task_type='reading_mixed';
         payload.content=JSON.stringify({ passage_html, questions: TASK_QUESTIONS });
       } else if(skill==='listening'){
         const audio_url=document.getElementById('m-audiourl').value;
         if(!audio_url) return toast('Please upload an audio file for this task','error');
         if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
-        for(const q of TASK_QUESTIONS){
-          if(!q.question.trim()) return toast('Every question needs question text','error');
-          if(q.type==='mcq' && q.options.some(o=>!o.trim())) return toast('Fill in all multiple-choice options','error');
-          if(!q.answer || !String(q.answer).trim()) return toast('Every question needs a correct answer set','error');
-        }
+        const err = validateQuestions(TASK_QUESTIONS);
+        if(err) return toast(err,'error');
         payload.task_type='listening_mixed';
         payload.content=JSON.stringify({ audio_url, instructions: document.getElementById('m-instructions').value.trim(), questions: TASK_QUESTIONS });
       } else if(skill==='writing'){
@@ -1595,7 +1801,51 @@ async function deleteItem(table,id){
 // ── SUBMISSION REVIEW ──
 function openSubmission(id){
   const sub=S.adminSubs.find(s=>s.id===id); S.currentSubId=id;
-  document.getElementById('sub-modal-title').textContent=`Review: ${sub.students?.name}`;
+  const skill = sub.tasks?.skill;
+  document.getElementById('sub-modal-title').textContent=`${skill==='writing'?'Review':'View'}: ${sub.students?.name}`;
+
+  if(skill==='reading' || skill==='listening'){
+    const task = S.adminTasks.find(t=>t.id===sub.task_id);
+    let taskData={}; try{taskData=JSON.parse(task?.content||'{}');}catch(e){}
+    const questions = taskData.questions||[];
+    let savedAnswers={}; try{savedAnswers=JSON.parse(sub.answer||'{}');}catch(e){}
+    const breakdown = questions.map((q,qi)=>{
+      if(q.type==='matching'){
+        const items=q.items||[];
+        const savedMatch = savedAnswers[qi]&&typeof savedAnswers[qi]==='object'?savedAnswers[qi]:{};
+        return items.map((it,ii)=>{
+          const given=savedMatch[ii]||'(no answer)';
+          const ok = given===it.answer;
+          return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span>${qi+1}. ${it.label}</span>
+            <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+it.answer+')'}</span>
+          </div>`;
+        }).join('');
+      }
+      const given = savedAnswers[qi]!==undefined?savedAnswers[qi]:'(no answer)';
+      const ok = q.type==='gap_fill'||q.type==='short_answer'
+        ? String(given).toLowerCase().trim()===(q.answer||'').toLowerCase().trim()
+        : given===q.answer;
+      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span>${qi+1}. ${q.question}</span>
+        <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+q.answer+')'}</span>
+      </div>`;
+    }).join('');
+
+    document.getElementById('sub-modal-body').innerHTML=`
+      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${sub.tasks?.title}</strong></p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</p>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-bottom:16px;text-align:center">
+        <span style="font-size:22px;font-weight:700;color:#15803d">${sub.score}/${sub.total}</span>
+        <div style="font-size:12px;color:var(--muted)">correct, auto-graded</div>
+      </div>
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:4px 16px">${breakdown||'<p style="font-size:13px;color:var(--muted);padding:10px 0">No question breakdown available.</p>'}</div>`;
+    document.getElementById('sub-save-btn').style.display='none';
+    document.getElementById('sub-modal-overlay').classList.add('open');
+    return;
+  }
+
+  document.getElementById('sub-save-btn').style.display='';
   document.getElementById('sub-modal-body').innerHTML=`
     <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${sub.tasks?.title}</strong></p>
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</p>
