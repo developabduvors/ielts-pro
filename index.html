@@ -564,24 +564,11 @@ async function authApi(path, body) {
   return data;
 }
 
-// Reads a locally-selected HTML file as plain text and stashes it in a
-// hidden textarea, so it gets saved straight into the task's content JSON.
-// (Supabase Storage/Edge Functions both force text/html files to be served
-// as text/plain — by design, to prevent using them as a webpage host —
-// so we store the HTML inline in the database instead of uploading it.)
-function onHtmlFileSelected(input){
-  const file = input.files && input.files[0];
-  const statusEl = document.getElementById('m-htmlfile-status');
-  if(!file) return;
-  if(!/\.html?$/i.test(file.name)) { statusEl.textContent='Please choose an .html file.'; return; }
-  const reader = new FileReader();
-  reader.onload = () => {
-    document.getElementById('m-htmlcontent').value = reader.result;
-    statusEl.textContent = `Loaded "${file.name}" (${Math.round(file.size/1024)} KB) — will be saved when you click Save.`;
-  };
-  reader.onerror = () => { statusEl.textContent = 'Could not read that file — please try again.'; };
-  reader.readAsText(file);
-}
+// Note: the earlier "upload a self-contained HTML quiz file" approach for
+// Reading/Listening tasks has been replaced by native question builders
+// below (renderQuestionBuilder etc.) — admins now build passages/audio +
+// questions directly in the app, which lets scores/answers be tracked
+// properly instead of trusting an arbitrary embedded page to self-report.
 
 let S = {
   student: null, lessons: [], tasks: [], submissions: [],
@@ -866,10 +853,12 @@ function markEmbeddedComplete(){
 
 // ── READING ──
 function renderReadingTask(task, sub, area) {
-  // Parse task content: JSON with passage_url and questions
+  // Parse task content. New tasks use passage_html (rendered inline);
+  // passage_url is kept as a fallback for any tasks created before this.
   let data = {};
-  try { data = JSON.parse(task.content); } catch(e) { data = { passage_url: null, questions: [] }; }
+  try { data = JSON.parse(task.content); } catch(e) { data = { questions: [] }; }
 
+  const passageHtml = data.passage_html || null;
   const passageUrl = data.passage_url || null;
   const questions = data.questions || [];
 
@@ -950,11 +939,12 @@ function renderReadingTask(task, sub, area) {
   }
 
   area.innerHTML = `<div class="reading-task-card">
-    ${passageUrl?`<div class="reading-open-btn" onclick="window.open('${passageUrl}','_blank')">
+    ${passageHtml?`<div class="reading-passage" style="padding:20px 24px;border-bottom:1px solid var(--border);line-height:1.7;max-height:340px;overflow-y:auto">${passageHtml}</div>`
+      :passageUrl?`<div class="reading-open-btn" onclick="window.open('${passageUrl}','_blank')">
       <div class="reading-open-icon">📄</div>
       <div class="reading-open-text"><h3>Open Reading Passage</h3><p>Click to open the passage in a new tab, then answer the questions below.</p></div>
       <div class="reading-open-arrow">↗</div>
-    </div>`:'<div style="padding:20px 24px;background:#f0fdf4;border-bottom:1px solid var(--border);color:#166534;font-size:13px;">⚠ No passage URL set yet. Admin can add it in the task settings.</div>'}
+    </div>`:'<div style="padding:20px 24px;background:#f0fdf4;border-bottom:1px solid var(--border);color:#166534;font-size:13px;">⚠ No passage added yet.</div>'}
     <div class="reading-questions">
       <h4>Questions — ${task.title}</h4>
       ${qHtml||'<div class="empty-state"><div class="icon">📭</div><h3>No questions added yet</h3></div>'}
@@ -1117,11 +1107,13 @@ function renderWritingTask(task, sub, area) {
   let data={}; try{data=JSON.parse(task.content);}catch(e){data={prompt:task.content};}
   const prompt=data.prompt||task.content||'';
   const minWords=data.min_words||150;
+  const imageUrl=data.image_url||null;
   const isSubmitted=!!sub;
 
   area.innerHTML=`<div class="writing-task-card">
     <div class="writing-prompt">
       <h3>✍️ Writing Prompt</h3>
+      ${imageUrl?`<img src="${imageUrl}" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"/>`:''}
       <p>${prompt}</p>
     </div>
     <div class="writing-area">
@@ -1308,24 +1300,51 @@ function onTaskSkillChange(){
   renderTaskSkillFields(skill, skill===t?.skill?t:null);
 }
 
+// In-memory question list while the task modal is open. Mirrors the
+// {type, question, options, answer} shape the existing student-side
+// grading engine (renderReadingTask/renderListeningTask) already expects.
+let TASK_QUESTIONS = [];
+
 function renderTaskSkillFields(skill, t){
   const el=document.getElementById('task-skill-fields');
-  if(skill==='reading' || skill==='listening'){
-    let existingData={}; if(t) try{existingData=JSON.parse(t.content||'{}');}catch(e){}
-    const hasExisting = !!existingData.html;
+  let data={}; if(t) try{data=JSON.parse(t.content||'{}');}catch(e){}
+  TASK_QUESTIONS = (t && skill===t.skill) ? (data.questions||[]).map(q=>({...q})) : [];
+
+  if(skill==='reading'){
+    el.innerHTML = `
+      <div class="form-group"><label>Reading Passage</label>
+        <div id="passage-toolbar" style="display:flex;gap:6px;margin-bottom:6px">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('bold')"><strong>B</strong></button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('italic')"><em>I</em></button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'H3')">Heading</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'P')">Paragraph</button>
+        </div>
+        <div id="m-passage" contenteditable="true" style="min-height:180px;max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${data.passage_html||'<p></p>'}</div>
+        <div class="hint-text">Paste or type the passage. Use the buttons above for basic formatting.</div>
+      </div>
+      <div id="question-builder"></div>`;
+    renderQuestionBuilder();
+  } else if(skill==='listening'){
     el.innerHTML = `
       <div class="form-group">
-        <label>${skill==='reading'?'📖 Reading':'🎧 Listening'} HTML file</label>
-        <input type="file" id="m-htmlfile" accept=".html,text/html" onchange="onHtmlFileSelected(this)"/>
-        <div class="hint-text" id="m-htmlfile-status">${hasExisting?`A file is currently saved for this task (${Math.round((existingData.html.length||0)/1024)} KB). Choose a new file to replace it, or leave as-is to keep it.`:'Upload a self-contained HTML page with the task and its own questions/answers built in.'}</div>
-        <textarea id="m-htmlcontent" style="display:none">${(existingData.html||'').replace(/<\/textarea>/g,'&lt;/textarea&gt;')}</textarea>
+        <label>🎧 Audio file</label>
+        <input type="file" id="m-audiofile" accept="audio/*" onchange="onAudioFileSelected(this)"/>
+        <div class="hint-text" id="m-audiofile-status">${data.audio_url?`Currently set: <a href="${data.audio_url}" target="_blank">listen to current audio</a>. Choose a new file to replace it.`:'Upload the listening recording students will hear (mp3, wav, m4a...).'}</div>
+        <input type="hidden" id="m-audiourl" value="${data.audio_url||''}"/>
       </div>
-      <div class="form-group"><label>Instructions shown above the task (optional)</label>
-        <input id="m-instructions" value="${existingData.instructions||''}" placeholder="e.g. Read the passage, then answer inside the embedded task."/>
-      </div>`;
+      <div class="form-group"><label>Instructions shown above the player (optional)</label>
+        <input id="m-instructions" value="${data.instructions||''}" placeholder="e.g. Listen carefully and fill in the gaps below."/>
+      </div>
+      <div id="question-builder"></div>`;
+    renderQuestionBuilder();
   } else if(skill==='writing'){
-    let data={}; if(t) try{data=JSON.parse(t.content||'{}');}catch(e){data={};}
     el.innerHTML = `
+      <div class="form-group">
+        <label>🖼️ Image (optional — chart, graph, diagram, map)</label>
+        <input type="file" id="m-imagefile" accept="image/*" onchange="onImageFileSelected(this)"/>
+        <div class="hint-text" id="m-imagefile-status">${data.image_url?`Currently set: <img src="${data.image_url}" style="max-width:100%;max-height:120px;display:block;margin-top:8px;border-radius:8px"/>`:'Students will see this above the writing prompt — typical for Writing Task 1.'}</div>
+        <input type="hidden" id="m-imageurl" value="${data.image_url||''}"/>
+      </div>
       <div class="form-group"><label>Instructions / Prompt</label>
         <textarea id="m-prompt" style="min-height:120px">${data.prompt||''}</textarea>
       </div>
@@ -1343,6 +1362,98 @@ function renderTaskSkillFields(skill, t){
         <div class="hint-text">{"questions":[{"type":"mcq","question":"...","options":["..."],"answer":"A"}]}</div>
       </div>`;
   }
+}
+
+// ── QUESTION BUILDER (mixed types: gap_fill / tfng / mcq) ──
+function renderQuestionBuilder(){
+  const el=document.getElementById('question-builder');
+  if(!el) return;
+  el.innerHTML = `<div class="form-group"><label>Questions</label>
+    <div id="question-list">${TASK_QUESTIONS.map((q,qi)=>questionEditorHtml(q,qi)).join('')||'<div class="hint-text">No questions yet — add one below.</div>'}</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('gap_fill')">+ Gap Fill</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('tfng')">+ True/False/NG</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('mcq')">+ Multiple Choice</button>
+    </div>
+  </div>`;
+}
+
+function questionEditorHtml(q, qi){
+  const common = `<div class="q-builder-item" style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span class="skill-pill">${q.type.replace('_',' ')}</span>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(${qi})">Remove</button>
+    </div>
+    <input placeholder="Question text" value="${(q.question||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'question',this.value)" style="margin-bottom:8px"/>`;
+
+  if(q.type==='gap_fill'){
+    return common + `<input placeholder="Correct answer" value="${(q.answer||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'answer',this.value)"/></div>`;
+  }
+  if(q.type==='tfng'){
+    return common + `<select onchange="updateQuestion(${qi},'answer',this.value)">
+      ${['True','False','Not Given'].map(o=>`<option value="${o}" ${q.answer===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>`;
+  }
+  if(q.type==='mcq'){
+    const opts = q.options && q.options.length ? q.options : ['','','',''];
+    return common + opts.map((o,oi)=>{
+      const letter=String.fromCharCode(65+oi);
+      return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input type="radio" name="mcq-answer-${qi}" ${q.answer===letter?'checked':''} onchange="updateQuestion(${qi},'answer','${letter}')" style="width:auto"/>
+        <span style="font-weight:600;width:18px">${letter}</span>
+        <input placeholder="Option ${letter}" value="${(o||'').replace(/"/g,'&quot;')}" oninput="updateOption(${qi},${oi},this.value)" style="flex:1"/>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+  return common + `</div>`;
+}
+
+function addQuestion(type){
+  const base = {type, question:'', answer:''};
+  if(type==='mcq') base.options = ['','','',''];
+  TASK_QUESTIONS.push(base);
+  renderQuestionBuilder();
+}
+function removeQuestion(qi){ TASK_QUESTIONS.splice(qi,1); renderQuestionBuilder(); }
+function updateQuestion(qi, field, value){ TASK_QUESTIONS[qi][field]=value; }
+function updateOption(qi, oi, value){ TASK_QUESTIONS[qi].options[oi]=value; }
+
+// Reads a locally-selected audio/image file and uploads it to Supabase
+// Storage (audio/image files are NOT subject to the .html text/plain
+// restriction — that only applies to text/html content — so Storage
+// works normally here).
+async function uploadMediaFile(file, folder){
+  if(!ADMIN_TOKEN) throw new Error('Not authenticated as admin');
+  const path = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g,'_')}`;
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/task-media/${path}`, {
+    method:'POST',
+    headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${ADMIN_TOKEN}`, 'Content-Type':file.type||'application/octet-stream', 'x-upsert':'true' },
+    body:file
+  });
+  if(!r.ok){ let msg='Upload failed'; try{const e=await r.json(); msg=e.message||msg;}catch(_){} throw new Error(msg); }
+  return `${SUPA_URL}/storage/v1/object/public/task-media/${path}`;
+}
+
+async function onAudioFileSelected(input){
+  const file=input.files&&input.files[0]; if(!file) return;
+  const statusEl=document.getElementById('m-audiofile-status');
+  statusEl.textContent='Uploading…';
+  try{
+    const url=await uploadMediaFile(file,'audio');
+    document.getElementById('m-audiourl').value=url;
+    statusEl.innerHTML=`Uploaded "${file.name}". <audio controls src="${url}" style="display:block;margin-top:6px;max-width:100%"></audio>`;
+  }catch(e){ statusEl.textContent='Upload failed: '+e.message; }
+}
+
+async function onImageFileSelected(input){
+  const file=input.files&&input.files[0]; if(!file) return;
+  const statusEl=document.getElementById('m-imagefile-status');
+  statusEl.textContent='Uploading…';
+  try{
+    const url=await uploadMediaFile(file,'images');
+    document.getElementById('m-imageurl').value=url;
+    statusEl.innerHTML=`Uploaded "${file.name}". <img src="${url}" style="max-width:100%;max-height:120px;display:block;margin-top:8px;border-radius:8px"/>`;
+  }catch(e){ statusEl.textContent='Upload failed: '+e.message; }
 }
 
 function openModal(type, editId=null){
@@ -1419,18 +1530,35 @@ async function saveModal(){
 
       let payload = { title, lesson_id, skill, order };
 
-      if(skill==='reading' || skill==='listening'){
-        const html = document.getElementById('m-htmlcontent').value;
-        if(!html) return toast('Please choose an HTML file for this task','error');
-        payload.task_type = 'html_embed';
-        payload.content = JSON.stringify({ html, instructions: document.getElementById('m-instructions').value.trim() });
+      if(skill==='reading'){
+        const passage_html = document.getElementById('m-passage').innerHTML;
+        if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
+        for(const q of TASK_QUESTIONS){
+          if(!q.question.trim()) return toast('Every question needs question text','error');
+          if(q.type==='mcq' && q.options.some(o=>!o.trim())) return toast('Fill in all multiple-choice options','error');
+          if(!q.answer || !String(q.answer).trim()) return toast('Every question needs a correct answer set','error');
+        }
+        payload.task_type='reading_mixed';
+        payload.content=JSON.stringify({ passage_html, questions: TASK_QUESTIONS });
+      } else if(skill==='listening'){
+        const audio_url=document.getElementById('m-audiourl').value;
+        if(!audio_url) return toast('Please upload an audio file for this task','error');
+        if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
+        for(const q of TASK_QUESTIONS){
+          if(!q.question.trim()) return toast('Every question needs question text','error');
+          if(q.type==='mcq' && q.options.some(o=>!o.trim())) return toast('Fill in all multiple-choice options','error');
+          if(!q.answer || !String(q.answer).trim()) return toast('Every question needs a correct answer set','error');
+        }
+        payload.task_type='listening_mixed';
+        payload.content=JSON.stringify({ audio_url, instructions: document.getElementById('m-instructions').value.trim(), questions: TASK_QUESTIONS });
       } else if(skill==='writing'){
         const prompt=document.getElementById('m-prompt').value.trim();
         const min_words=parseInt(document.getElementById('m-minwords').value)||150;
         const time_limit_minutes=document.getElementById('m-timelimit').value?parseInt(document.getElementById('m-timelimit').value):null;
+        const image_url=document.getElementById('m-imageurl').value||null;
         if(!prompt) return toast('Enter writing instructions/prompt','error');
         payload.task_type='essay';
-        payload.content=JSON.stringify({ prompt, min_words, time_limit_minutes });
+        payload.content=JSON.stringify({ prompt, min_words, time_limit_minutes, image_url });
       } else {
         const task_type=document.getElementById('m-type').value.trim();
         const content=document.getElementById('m-content').value.trim();
