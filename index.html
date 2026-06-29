@@ -254,12 +254,16 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .q-input.wrong { border-color: var(--red); background: #fef2f2; color: #991b1b; }
 .q-input:disabled { background: #f8fafc; }
 .q-label { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
-.tfng-group { display: flex; gap: 8px; }
+.tfng-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .tfng-btn { padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--card); color: var(--muted); transition: all 0.2s; }
 .tfng-btn:hover { border-color: var(--blue); color: var(--blue); }
 .tfng-btn.selected-T { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
 .tfng-btn.selected-F { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-N { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
 .tfng-btn.selected-NG { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-Not_Given { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-Yes { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+.tfng-btn.selected-No { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
 .tfng-btn.correct { background: #dcfce7 !important; border-color: var(--green) !important; color: #15803d !important; }
 .tfng-btn.wrong { background: #fef2f2 !important; border-color: var(--red) !important; color: #dc2626 !important; }
 .tfng-btn:disabled { cursor: default; }
@@ -372,6 +376,29 @@ audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.1); }
   .admin-grid { grid-template-columns: 1fr; }
   .auth-card { padding: 32px 22px; }
   .lessons-grid { grid-template-columns: repeat(2, 1fr); }
+  .reading-split { grid-template-columns: 1fr; }
+  .reading-passage-col { border-right: none; border-bottom: 1.5px solid var(--border); max-height: 45vh; }
+  .writing-split { grid-template-columns: 1fr; }
+  .writing-prompt { border-right: none; border-bottom: 1.5px solid var(--border); max-height: 240px; }
+  .task-footer { flex-direction: column; align-items: stretch; }
+  .task-footer .btn { width: 100%; }
+  .tfng-btn { flex: 1; text-align: center; min-width: 70px; }
+  .q-input { font-size: 16px; } /* prevent iOS zoom */
+  audio { min-width: 0; width: 100%; }
+  .audio-player-box { flex-wrap: wrap; }
+  #screen-student .content { padding: 16px 14px; }
+  .modal { padding: 22px 16px; }
+  .app-nav { padding: 0 14px; }
+  .nav-user { display: none; }
+  .data-table { overflow-x: auto; display: block; }
+  .admin-stats-row { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .lessons-grid { grid-template-columns: repeat(2, 1fr); }
+  .skill-bars { grid-template-columns: 1fr; }
+  .welcome-banner h2 { font-size: 1.2rem; }
+  .progress-box .pct { font-size: 2rem; }
 }
 </style>
 </head>
@@ -910,8 +937,8 @@ function renderReadingTask(task, sub, area) {
           ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
         </div>
       </div>`;
-    } else if(q.type==='tfng') {
-      const opts = ['True','False','Not Given'];
+    } else if(q.type==='tfng' || q.type==='ynng') {
+      const opts = q.type==='ynng' ? ['Yes','No','Not Given'] : ['True','False','Not Given'];
       qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:8px">
         <div style="display:flex;gap:10px;align-items:flex-start">
           <div class="q-num">${qi+1}</div>
@@ -919,9 +946,10 @@ function renderReadingTask(task, sub, area) {
         </div>
         <div class="tfng-group" style="margin-left:34px">
           ${opts.map(o=>{
+            const safeKey=o.replace(/\s+/g,'_');
             const isSelected = saved===o;
             const correct = q.answer||'';
-            let cls = isSelected?`selected-${o[0]}`:'';
+            let cls = isSelected?`selected-${safeKey}`:'';
             if(isSubmitted && isSelected) cls = saved===correct?'correct':'wrong';
             if(isSubmitted && o===correct && !isSelected) cls='correct';
             return `<button class="tfng-btn ${cls}" id="qa_${qi}_${o}" ${isSubmitted?'disabled':''} onclick="selectTFNG(${qi},'${o}')">${o}</button>`;
@@ -974,20 +1002,100 @@ function renderReadingTask(task, sub, area) {
           ${items.map((it,ii)=>{
             const itemSaved = savedMatch[ii]||'';
             const isCorrect = itemSaved===it.answer;
-            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-              <span style="min-width:140px">${it.label}</span>
+            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+              <span style="min-width:140px;font-size:13px">${it.label}</span>
               <select id="qa_${qi}_${ii}" ${isSubmitted?'disabled':''} onchange="selectMatching(${qi},${ii},this.value)"
-                class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):''}" style="${isSubmitted?'':'width:auto;display:inline-block'}">
+                class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):'q-input'}" style="flex:1;min-width:120px">
                 <option value="">Choose…</option>
                 ${matchOptions.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${itemSaved===o?'selected':''}>${o}</option>`).join('')}
               </select>
-              ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">Answer: <strong>${it.answer}</strong></span>`:''}
+              ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">✓ <strong>${it.answer}</strong></span>`:''}
             </div>`;
           }).join('')}
         </div>
       </div>`;
+    } else if(q.type==='sentence_endings') {
+      const items = q.items||[];
+      const matchOptions = q.matchOptions||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      const endingsHtml = matchOptions.map(function(o,oi){
+        return '<span style="display:inline-block;margin:3px 8px 3px 0"><strong>'+String.fromCharCode(65+oi)+'.</strong> '+o+'</span>';
+      }).join('');
+      const itemsHtml = items.map(function(it,ii){
+        const itemSaved = savedMatch[ii]||'';
+        const isCorrect = itemSaved===it.answer;
+        const optHtml = matchOptions.map(function(o,oi){
+          const l=String.fromCharCode(65+oi);
+          return '<option value="'+l+'" '+(itemSaved===l?'selected':'')+'>'+l+'</option>';
+        }).join('');
+        const ansHint = isSubmitted ? '<span style="font-size:12px;color:var(--muted)">&#10003; <strong>'+it.answer+'</strong></span>' : '';
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+          '<span style="font-size:13px;flex:1;min-width:160px"><strong>'+(ii+1)+'.</strong> '+it.label+'</span>'+
+          '<select id="qa_'+qi+'_'+ii+'" '+(isSubmitted?'disabled':'')+' onchange="selectMatching('+qi+','+ii+',this.value)"'+
+          ' class="'+(isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):'q-input')+'" style="min-width:60px">'+
+          '<option value="">—</option>'+optHtml+'</select>'+ansHint+'</div>';
+      }).join('');
+      const instrText = q.question || ('Match the sentence beginnings (1\u2013'+items.length+') with the correct endings (A\u2013'+String.fromCharCode(64+matchOptions.length)+').');
+      qHtml += '<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">'+
+        '<div style="display:flex;gap:10px;align-items:flex-start">'+
+        '<div class="q-num">'+(qi+1)+'</div>'+
+        '<div class="q-label" style="font-weight:600">'+instrText+'</div></div>'+
+        '<div style="margin-left:34px;width:100%">'+
+        '<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px">'+
+        '<strong>Endings:</strong><br>'+endingsHtml+'</div>'+
+        itemsHtml+'</div></div>';
+    } else if(q.type==='diagram_label') {
+      const items = q.items||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      const imgHtml = q.image_url
+        ? '<img src="'+q.image_url+'" style="max-width:100%;border-radius:8px;margin-bottom:10px;display:block"/>'
+        : '<div style="background:#f8fafc;border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px">&#128202; Diagram image (add via image URL in question)</div>';
+      const labelItemsHtml = items.map(function(it,ii){
+        const itemSaved = savedMatch[ii]||'';
+        const isCorrect = (itemSaved||'').toLowerCase().trim()===(it.answer||'').toLowerCase().trim();
+        const ansHint = isSubmitted ? '<span style="font-size:12px;color:var(--muted)">&#10003; <strong>'+it.answer+'</strong></span>' : '';
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+          '<span style="font-size:13px;min-width:60px"><strong>'+(it.label||String(ii+1))+'</strong></span>'+
+          '<input id="qa_'+qi+'_'+ii+'" value="'+itemSaved+'" '+(isSubmitted?'disabled':'')+' placeholder="Write your answer"'+
+          ' class="q-input'+(isSubmitted?(isCorrect?' correct':' wrong'):'')+'" style="flex:1;min-width:120px"'+
+          ' onchange="selectDiagramLabel('+qi+','+ii+',this.value)"/>'+ansHint+'</div>';
+      }).join('');
+      qHtml += '<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">'+
+        '<div style="display:flex;gap:10px;align-items:flex-start">'+
+        '<div class="q-num">'+(qi+1)+'</div>'+
+        '<div class="q-label">'+(q.question||'Label the diagram. Write NO MORE THAN TWO WORDS for each answer.')+'</div></div>'+
+        '<div style="margin-left:34px;width:100%">'+imgHtml+labelItemsHtml+'</div></div>';
+    } else if(q.type==='table_completion' || q.type==='summary_completion' || q.type==='flow_chart' || q.type==='note_completion') {
+      // Rendered as a structured gap-fill with context text containing {N} placeholders
+      const contextHtml = (q.context||'').replace(/\{(\d+)\}/g, function(m,n){
+        const idx = parseInt(n)-1;
+        const items = q.items||[];
+        const itemSaved = (saved && typeof saved==='object') ? (saved[idx]||'') : '';
+        const correctAns = items[idx]?.answer||'';
+        const isCorrect = (itemSaved||'').toLowerCase().trim()===correctAns.toLowerCase().trim();
+        const answerHint = isSubmitted ? '<span style="font-size:11px;color:var(--muted)">['+correctAns+']</span>' : '';
+        return '<input id="qa_'+qi+'_'+idx+'" value="'+itemSaved+'" '+(isSubmitted?'disabled':'')+
+          ' class="q-input'+(isSubmitted?(isCorrect?' correct':' wrong'):'')+'"'+
+          ' style="display:inline-block;width:120px;padding:4px 8px;margin:0 4px;vertical-align:middle"'+
+          ' placeholder="'+n+'"'+
+          ' onchange="selectTableItem('+qi+','+idx+',this.value)"/>'+answerHint;
+      });
+      const typeLabels = {table_completion:'Table Completion',summary_completion:'Summary Completion',flow_chart:'Flow-Chart Completion',note_completion:'Note Completion'};
+      const typeLabel = typeLabels[q.type]||q.type;
+      qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${typeLabel}</div>
+            <div class="q-label">${q.question||('Complete the '+typeLabel+' below. Write NO MORE THAN TWO WORDS.')}</div>
+          </div>
+        </div>
+        <div style="margin-left:34px;width:100%;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:14px;line-height:2.2">
+          ${contextHtml||'<span style="color:var(--muted)">No context text set yet. Admin can add it with {1}, {2} placeholders.</span>'}
+        </div>
+      </div>`;
     }
-  });
+  }); // end questions.forEach
 
   // score if submitted
   let scoreHtml = '';
@@ -1025,7 +1133,7 @@ function renderReadingTask(task, sub, area) {
   if(!isSubmitted) {
     questions.forEach((q,qi)=>{
       const saved = savedAnswers[qi];
-      if(saved && q.type==='tfng') { const btn=document.getElementById(`qa_${qi}_${saved}`); if(btn) btn.classList.add(`selected-${saved[0]}`); }
+      if(saved && (q.type==='tfng'||q.type==='ynng')) { const btn=document.getElementById(`qa_${qi}_${saved}`); if(btn) btn.classList.add(`selected-${saved.replace(/\s+/g,'_')}`); }
       if(saved && q.type==='mcq') { const el=document.getElementById(`qa_${qi}_${saved}`); if(el) el.classList.add('selected'); }
     });
   }
@@ -1040,16 +1148,28 @@ function gradeQuestions(questions, answers){
   let correct=0, total=0;
   questions.forEach((q,qi)=>{
     const saved = answers[qi];
-    if(q.type==='matching'){
+    if(q.type==='matching'||q.type==='sentence_endings'){
       const items=q.items||[];
       const savedMatch = saved && typeof saved==='object' ? saved : {};
       items.forEach((it,ii)=>{ total++; if((savedMatch[ii]||'')===it.answer) correct++; });
       return;
     }
+    if(q.type==='diagram_label'){
+      const items=q.items||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      items.forEach((it,ii)=>{ total++; if((savedMatch[ii]||'').toLowerCase().trim()===(it.answer||'').toLowerCase().trim()) correct++; });
+      return;
+    }
+    if(q.type==='table_completion'||q.type==='summary_completion'||q.type==='flow_chart'||q.type==='note_completion'){
+      const items=q.items||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      items.forEach((it,ii)=>{ total++; if((savedMatch[ii]||'').toLowerCase().trim()===(it.answer||'').toLowerCase().trim()) correct++; });
+      return;
+    }
     total++;
     if(q.type==='gap_fill' || q.type==='short_answer'){
       if((saved||'').toString().toLowerCase().trim()===(q.answer||'').toLowerCase().trim()) correct++;
-    } else if(q.type==='tfng' || q.type==='mcq'){
+    } else if(q.type==='tfng' || q.type==='ynng' || q.type==='mcq'){
       if(saved===(q.answer||'')) correct++;
     }
   });
@@ -1061,12 +1181,14 @@ function selectMatching(qi, ii, value){
   // so submit-time collection can read directly from the DOM, matching the
   // pattern used by gap_fill/short_answer inputs.
 }
+function selectDiagramLabel(qi, ii, value){}
+function selectTableItem(qi, ii, value){}
 
 function selectTFNG(qi, val) {
   if(S.currentSubmission) return;
   const opts=['True','False','Not Given'];
   opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b){b.className='tfng-btn';} });
-  const b=document.getElementById(`qa_${qi}_${val}`); if(b) b.classList.add(`selected-${val[0]}`);
+  const b=document.getElementById(`qa_${qi}_${val}`); if(b) b.classList.add(`selected-${val.replace(/\s+/g,'_')}`);
 }
 
 function selectMCQ(qi, letter) {
@@ -1083,15 +1205,26 @@ async function submitReadingTask() {
   const answers={};
   questions.forEach((q,qi)=>{
     if(q.type==='gap_fill' || q.type==='short_answer'){ const inp=document.getElementById(`qa_${qi}`); answers[qi]=inp?inp.value.trim():''; }
-    else if(q.type==='tfng'){
-      ['True','False','Not Given'].forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b&&b.classList.contains(`selected-${o[0]}`)) answers[qi]=o; });
+    else if(q.type==='tfng' || q.type==='ynng'){
+      const opts = q.type==='ynng' ? ['Yes','No','Not Given'] : ['True','False','Not Given'];
+      opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b&&b.classList.contains(`selected-${o.replace(/\s+/g,'_')}`)) answers[qi]=o; });
     } else if(q.type==='mcq'){
       const opts=q.options||[];
       opts.forEach((_,oi)=>{ const l=String.fromCharCode(65+oi); const el=document.getElementById(`qa_${qi}_${l}`); if(el&&el.classList.contains('selected')) answers[qi]=l; });
-    } else if(q.type==='matching'){
+    } else if(q.type==='matching'||q.type==='sentence_endings'){
       const items=q.items||[];
       const itemAnswers={};
       items.forEach((it,ii)=>{ const sel=document.getElementById(`qa_${qi}_${ii}`); if(sel) itemAnswers[ii]=sel.value; });
+      answers[qi]=itemAnswers;
+    } else if(q.type==='diagram_label'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((it,ii)=>{ const inp=document.getElementById(`qa_${qi}_${ii}`); if(inp) itemAnswers[ii]=inp.value.trim(); });
+      answers[qi]=itemAnswers;
+    } else if(q.type==='table_completion'||q.type==='summary_completion'||q.type==='flow_chart'||q.type==='note_completion'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((_,ii)=>{ const inp=document.getElementById(`qa_${qi}_${ii}`); if(inp) itemAnswers[ii]=inp.value.trim(); });
       answers[qi]=itemAnswers;
     }
   });
@@ -1541,22 +1674,30 @@ function renderQuestionBuilder(){
   el.innerHTML = `<div class="form-group"><label>Questions</label>
     <div id="question-list">${TASK_QUESTIONS.map((q,qi)=>questionEditorHtml(q,qi)).join('')||'<div class="hint-text">No questions yet — add one below.</div>'}</div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('gap_fill')">+ Gap Fill</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('gap_fill')">+ Note/Gap Fill</button>
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('tfng')">+ True/False/NG</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('ynng')">+ Yes/No/NG</button>`:''}
       <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('mcq')">+ Multiple Choice</button>
-      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('matching')">+ Matching</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('matching')">+ Matching Features</button>
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('sentence_endings')">+ Sentence Endings</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('summary_completion')">+ Summary Completion</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('note_completion')">+ Note Completion</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('table_completion')">+ Table Completion</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('flow_chart')">+ Flow-Chart</button>`:''}
+      ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('diagram_label')">+ Diagram Label</button>`:''}
       <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('short_answer')">+ Short Answer</button>
     </div>
   </div>`;
 }
 
 function questionEditorHtml(q, qi){
+  const typeLabel = {gap_fill:'Gap Fill',tfng:'True/False/NG',ynng:'Yes/No/NG',mcq:'Multiple Choice',matching:'Matching Features',short_answer:'Short Answer',sentence_endings:'Sentence Endings',summary_completion:'Summary Completion',note_completion:'Note Completion',table_completion:'Table Completion',flow_chart:'Flow-Chart',diagram_label:'Diagram Label'}[q.type]||q.type;
   const common = `<div class="q-builder-item" style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span class="skill-pill">${q.type.replace('_',' ')}</span>
+      <span class="skill-pill">${typeLabel}</span>
       <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(${qi})">Remove</button>
     </div>
-    <input placeholder="Question text" value="${(q.question||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'question',this.value)" style="margin-bottom:8px"/>`;
+    <input placeholder="Question / instruction text" value="${(q.question||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'question',this.value)" style="margin-bottom:8px"/>`;
 
   if(q.type==='gap_fill' || q.type==='short_answer'){
     return common + `<input placeholder="Correct answer" value="${(q.answer||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'answer',this.value)"/></div>`;
@@ -1564,6 +1705,11 @@ function questionEditorHtml(q, qi){
   if(q.type==='tfng'){
     return common + `<select onchange="updateQuestion(${qi},'answer',this.value)">
       ${['True','False','Not Given'].map(o=>`<option value="${o}" ${q.answer===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>`;
+  }
+  if(q.type==='ynng'){
+    return common + `<select onchange="updateQuestion(${qi},'answer',this.value)">
+      ${['Yes','No','Not Given'].map(o=>`<option value="${o}" ${q.answer===o?'selected':''}>${o}</option>`).join('')}
     </select></div>`;
   }
   if(q.type==='mcq'){
@@ -1578,29 +1724,56 @@ function questionEditorHtml(q, qi){
       </div>`;
     }).join('') + `</div>`;
   }
-  if(q.type==='matching'){
-    // q.items: list of {label, answer} pairs, e.g. "Paragraph A" -> "iii"
-    // q.matchOptions: the shared pool of options students choose from (e.g. headings i-vii)
+  if(q.type==='matching' || q.type==='sentence_endings'){
     const items = q.items && q.items.length ? q.items : [{label:'',answer:''}];
     const matchOptions = q.matchOptions && q.matchOptions.length ? q.matchOptions : ['',''];
+    const isSentEndings = q.type==='sentence_endings';
     return common + `
-      <div class="hint-text" style="margin-bottom:6px">Option pool students choose from:</div>
+      <div class="hint-text" style="margin-bottom:6px">${isSentEndings?'Sentence endings (A, B, C…):':'Option pool students choose from:'}</div>
       ${matchOptions.map((o,oi)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <span style="font-weight:600;width:22px">${oi+1}.</span>
+        <span style="font-weight:600;width:22px">${isSentEndings?String.fromCharCode(65+oi):oi+1+'.'}</span>
         <input placeholder="Option text" value="${(o||'').replace(/"/g,'&quot;')}" oninput="updateMatchOption(${qi},${oi},this.value)" style="flex:1"/>
         <button type="button" class="btn btn-danger btn-sm" onclick="removeMatchOption(${qi},${oi})">✕</button>
       </div>`).join('')}
       <button type="button" class="btn btn-outline btn-sm" onclick="addMatchOption(${qi})" style="margin-bottom:10px">+ Option</button>
-      <div class="hint-text" style="margin-bottom:6px">Items to match, with their correct option text:</div>
-      ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <input placeholder="Item (e.g. Paragraph A)" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="updateMatchItem(${qi},${ii},'label',this.value)" style="flex:1"/>
-        <select onchange="updateMatchItem(${qi},${ii},'answer',this.value)" style="flex:1">
-          <option value="">Correct option…</option>
-          ${matchOptions.map(o=>`<option value="${(o||'').replace(/"/g,'&quot;')}" ${it.answer===o?'selected':''}>${o||'(empty)'}</option>`).join('')}
+      <div class="hint-text" style="margin-bottom:6px">${isSentEndings?'Sentence beginnings (students pick the matching ending):':'Items to match, with their correct option:'}</div>
+      ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+        <input placeholder="${isSentEndings?'Sentence beginning…':'Item (e.g. Paragraph A)'}" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="updateMatchItem(${qi},${ii},'label',this.value)" style="flex:1;min-width:120px"/>
+        <select onchange="updateMatchItem(${qi},${ii},'answer',this.value)" style="min-width:80px">
+          <option value="">Correct…</option>
+          ${matchOptions.map((o,oi)=>{ const key=isSentEndings?String.fromCharCode(65+oi):o; return `<option value="${key.replace(/"/g,'&quot;')}" ${it.answer===key?'selected':''}>${isSentEndings?String.fromCharCode(65+oi):o||'(empty)'}</option>`; }).join('')}
         </select>
         <button type="button" class="btn btn-danger btn-sm" onclick="removeMatchItem(${qi},${ii})">✕</button>
       </div>`).join('')}
       <button type="button" class="btn btn-outline btn-sm" onclick="addMatchItem(${qi})">+ Item</button>
+    </div>`;
+  }
+  if(q.type==='summary_completion'||q.type==='note_completion'||q.type==='table_completion'||q.type==='flow_chart'){
+    const items = q.items && q.items.length ? q.items : [{answer:''}];
+    const typeHint = {summary_completion:'Use {1}, {2}, {3}… in the context text to mark gaps.',note_completion:'Use {1}, {2}… to mark blank spaces in your notes.',table_completion:'Use {1}, {2}… to mark blank cells.',flow_chart:'Use {1}, {2}… to mark blank steps.'}[q.type]||'Use {N} placeholders for gaps.';
+    return common + `
+      <div class="hint-text" style="margin-bottom:6px">${typeHint}</div>
+      <textarea placeholder="Context text with {1} {2} {3} placeholders…" oninput="updateQuestion(${qi},'context',this.value)" style="min-height:100px;font-size:13px">${(q.context||'').replace(/</g,'&lt;')}</textarea>
+      <div class="hint-text" style="margin:8px 0 6px">Correct answers for each gap (in order):</div>
+      ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span style="font-weight:600;min-width:28px">{${ii+1}}</span>
+        <input placeholder="Answer" value="${(it.answer||'').replace(/"/g,'&quot;')}" oninput="updateGapItem(${qi},${ii},this.value)" style="flex:1"/>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeGapItem(${qi},${ii})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="addGapItem(${qi})">+ Gap</button>
+    </div>`;
+  }
+  if(q.type==='diagram_label'){
+    const items = q.items && q.items.length ? q.items : [{label:'1',answer:''}];
+    return common + `
+      <div class="form-group" style="margin-bottom:8px"><input placeholder="Image URL for diagram (optional)" value="${(q.image_url||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'image_url',this.value)"/></div>
+      <div class="hint-text" style="margin-bottom:6px">Label numbers and their correct answers:</div>
+      ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input placeholder="Label (e.g. A, 1, 2)" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="updateMatchItem(${qi},${ii},'label',this.value)" style="width:80px"/>
+        <input placeholder="Answer" value="${(it.answer||'').replace(/"/g,'&quot;')}" oninput="updateMatchItem(${qi},${ii},'answer',this.value)" style="flex:1"/>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeMatchItem(${qi},${ii})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="addMatchItem(${qi})">+ Label</button>
     </div>`;
   }
   return common + `</div>`;
@@ -1612,6 +1785,9 @@ function updateMatchItem(qi,ii,field,value){ TASK_QUESTIONS[qi].items[ii][field]
 function addMatchOption(qi){ TASK_QUESTIONS[qi].matchOptions=TASK_QUESTIONS[qi].matchOptions||[]; TASK_QUESTIONS[qi].matchOptions.push(''); renderQuestionBuilder(); }
 function removeMatchOption(qi,oi){ TASK_QUESTIONS[qi].matchOptions.splice(oi,1); renderQuestionBuilder(); }
 function updateMatchOption(qi,oi,value){ TASK_QUESTIONS[qi].matchOptions[oi]=value; }
+function addGapItem(qi){ TASK_QUESTIONS[qi].items=TASK_QUESTIONS[qi].items||[]; TASK_QUESTIONS[qi].items.push({answer:''}); renderQuestionBuilder(); }
+function removeGapItem(qi,ii){ TASK_QUESTIONS[qi].items.splice(ii,1); renderQuestionBuilder(); }
+function updateGapItem(qi,ii,value){ if(!TASK_QUESTIONS[qi].items) TASK_QUESTIONS[qi].items=[]; if(!TASK_QUESTIONS[qi].items[ii]) TASK_QUESTIONS[qi].items[ii]={answer:''}; TASK_QUESTIONS[qi].items[ii].answer=value; }
 
 // Validates the in-progress question list before save. Returns an error
 // message string if something's wrong, or null if everything checks out.
@@ -1621,15 +1797,22 @@ function validateQuestions(questions){
     if(q.type==='mcq'){
       if(q.options.some(o=>!o.trim())) return 'Fill in all multiple-choice options';
       if(!q.answer) return 'Pick the correct option for every multiple-choice question';
-    } else if(q.type==='matching'){
-      if(!q.matchOptions || q.matchOptions.some(o=>!o.trim())) return 'Fill in all matching options (the pool students choose from)';
+    } else if(q.type==='matching'||q.type==='sentence_endings'){
+      if(!q.matchOptions || q.matchOptions.some(o=>!o.trim())) return 'Fill in all options (the pool students choose from)';
       if(!q.items || q.items.length===0) return 'Add at least one item to match';
       for(const it of q.items){
-        if(!it.label.trim()) return 'Every matching item needs a label';
-        if(!it.answer) return 'Every matching item needs a correct option selected';
+        if(q.type==='matching' && !it.label.trim()) return 'Every matching item needs a label';
+        if(!it.answer) return 'Every item needs a correct option selected';
       }
+    } else if(q.type==='diagram_label'){
+      if(!q.items || q.items.length===0) return 'Add at least one label';
+      for(const it of q.items){ if(!it.answer.trim()) return 'Every diagram label needs a correct answer'; }
+    } else if(q.type==='summary_completion'||q.type==='note_completion'||q.type==='table_completion'||q.type==='flow_chart'){
+      if(!q.context||!q.context.trim()) return `${q.type.replace('_',' ')} question needs context text with {1}, {2}… placeholders`;
+      if(!q.items || q.items.length===0) return 'Add at least one gap answer';
+      for(const it of q.items){ if(!it.answer.trim()) return 'Fill in the answer for every gap'; }
     } else {
-      // gap_fill, tfng, short_answer — all use a single top-level answer
+      // gap_fill, tfng, ynng, short_answer — all use a single top-level answer
       if(!q.answer || !String(q.answer).trim()) return 'Every question needs a correct answer set';
     }
   }
@@ -1639,7 +1822,10 @@ function validateQuestions(questions){
 function addQuestion(type){
   const base = {type, question:'', answer:''};
   if(type==='mcq') base.options = Array(TASK_QUESTIONS_SKILL==='listening'?3:4).fill('');
-  if(type==='matching'){ base.items=[{label:'',answer:''}]; base.matchOptions=['','']; delete base.answer; }
+  if(type==='matching'||type==='sentence_endings'){ base.items=[{label:'',answer:''}]; base.matchOptions=['','']; delete base.answer; }
+  if(type==='diagram_label'){ base.items=[{label:'1',answer:''}]; base.image_url=''; delete base.answer; }
+  if(type==='summary_completion'||type==='note_completion'||type==='table_completion'||type==='flow_chart'){ base.items=[{answer:''}]; base.context=''; delete base.answer; }
+  if(type==='ynng') base.answer='Yes';
   TASK_QUESTIONS.push(base);
   renderQuestionBuilder();
 }
@@ -1842,8 +2028,7 @@ function openSubmission(id){
       const given = savedAnswers[qi]!==undefined?savedAnswers[qi]:'(no answer)';
       const ok = q.type==='gap_fill'||q.type==='short_answer'
         ? String(given).toLowerCase().trim()===(q.answer||'').toLowerCase().trim()
-        : given===q.answer;
-      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        : given===q.answer;      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
         <span>${qi+1}. ${q.question}</span>
         <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+q.answer+')'}</span>
       </div>`;
