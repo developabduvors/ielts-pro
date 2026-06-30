@@ -309,17 +309,12 @@ function onTaskSkillChange(){
 // grading engine (in reading-test.html / listening-test.html) expects.
 let TASK_QUESTIONS = [];
 let TASK_QUESTIONS_SKILL = 'reading';
-
-// ── FULL READING TEST (multiple passages) ──
-// TASK_PASSAGES holds one entry per passage: {title, passage_html, questions}.
-// In single-passage mode it always has exactly one entry — TASK_FULLTEST just
-// controls whether tabs are shown and which task_type/content shape gets saved.
-// TASK_QUESTIONS always points at TASK_PASSAGES[ACTIVE_PASSAGE].questions (the
-// same array reference), so the existing question-builder code below needs no
-// changes at all — it keeps mutating "the active passage's questions".
+// 'single' = one passage + flat question list (existing behaviour).
+// 'full'   = multi-passage exam ("Reading Full Test"): several passages,
+// each question tagged with a `passage` index, rendered with tabs/timer.
+let TASK_FORMAT = 'single';
 let TASK_PASSAGES = [];
-let TASK_FULLTEST = false;
-let ACTIVE_PASSAGE = 0;
+let TASK_SINGLE_PASSAGE_HTML = '<p></p>';
 
 function renderTaskSkillFields(skill, t){
   const el=document.getElementById('task-skill-fields');
@@ -327,20 +322,12 @@ function renderTaskSkillFields(skill, t){
   TASK_QUESTIONS = (t && skill===t.skill) ? (data.questions||[]).map(q=>({...q})) : [];
 
   if(skill==='reading'){
-    TASK_FULLTEST = !!(t && skill===t.skill && t.task_type==='reading_full_test');
-    if(TASK_FULLTEST){
-      TASK_PASSAGES = (data.passages||[]).map((p,pi)=>({
-        title: p.title || ('Passage '+(pi+1)),
-        passage_html: p.passage_html || '<p></p>',
-        questions: (p.questions||[]).map(q=>({...q}))
-      }));
-      if(!TASK_PASSAGES.length) TASK_PASSAGES=[{title:'Passage 1',passage_html:'<p></p>',questions:[]}];
-    } else {
-      TASK_PASSAGES = [{ title:'Passage 1', passage_html: data.passage_html || '<p></p>', questions: TASK_QUESTIONS }];
-    }
-    ACTIVE_PASSAGE = 0;
+    TASK_FORMAT = (t && t.skill==='reading' && t.task_type==='reading_full_test') ? 'full' : 'single';
+    TASK_PASSAGES = (TASK_FORMAT==='full' && data.passages) ? data.passages.map(p=>({...p})) : [];
+    if(TASK_FORMAT==='full' && TASK_PASSAGES.length===0) TASK_PASSAGES = [{title:'',html:'<p></p>'}];
+    TASK_SINGLE_PASSAGE_HTML = (TASK_FORMAT==='single') ? (data.passage_html||'<p></p>') : '<p></p>';
     TASK_QUESTIONS_SKILL = 'reading';
-    renderReadingFields();
+    renderReadingSkillFields();
   } else if(skill==='listening'){
     el.innerHTML = `
       <div class="form-group">
@@ -382,142 +369,177 @@ function renderTaskSkillFields(skill, t){
   }
 }
 
-// ── READING TASK FIELDS (single passage, or full multi-passage test) ──
-function renderReadingFields(){
+function renderReadingSkillFields(){
   const el=document.getElementById('task-skill-fields');
   if(!el) return;
-  if(!TASK_PASSAGES.length) TASK_PASSAGES=[{title:'Passage 1',passage_html:'<p></p>',questions:[]}];
-  if(ACTIVE_PASSAGE>=TASK_PASSAGES.length) ACTIVE_PASSAGE=TASK_PASSAGES.length-1;
-  TASK_QUESTIONS = TASK_PASSAGES[ACTIVE_PASSAGE].questions;
-
-  const tabsHtml = TASK_FULLTEST ? `
-    <div class="passage-tabs">
-      ${TASK_PASSAGES.map((p,pi)=>`<button type="button" class="btn ${pi===ACTIVE_PASSAGE?'btn-primary':'btn-outline'} btn-sm" onclick="switchPassageTab(${pi})">${(p.title||'Passage '+(pi+1)).replace(/</g,'&lt;')}</button>`).join('')}
-      <button type="button" class="btn btn-outline btn-sm" onclick="addPassage()">+ Passage</button>
-      ${TASK_PASSAGES.length>1?`<button type="button" class="btn btn-danger btn-sm" onclick="removePassage(${ACTIVE_PASSAGE})">Remove this passage</button>`:''}
-    </div>` : '';
-
-  const titleField = TASK_FULLTEST ? `
-    <div class="form-group"><label>Passage Title</label>
-      <input id="m-passage-title" value="${(TASK_PASSAGES[ACTIVE_PASSAGE].title||'').replace(/"/g,'&quot;')}" oninput="updatePassageTitle(this.value)"/>
-    </div>` : '';
-
   el.innerHTML = `
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
-        <input type="checkbox" ${TASK_FULLTEST?'checked':''} onchange="toggleFullTest(this.checked)" style="width:auto"/>
-        Full Reading Test (multiple passages, like a real IELTS test)
-      </label>
-      <div class="hint-text">Each passage gets its own text and question set. Question numbering and the student timer carry across all passages.</div>
-    </div>
-    <div class="form-group">
-      <button type="button" class="btn btn-outline btn-sm" onclick="toggleImportBox()">⎘ Paste Test JSON</button>
-      <div id="import-box" style="display:none;margin-top:8px">
-        <textarea id="m-import-json" style="min-height:140px;font-family:monospace;font-size:12px" placeholder='{"passages":[{"title":"Passage 1","passage_html":"<p>...</p>","questions":[{"type":"tfng","question":"...","answer":"True"}]}]}'></textarea>
-        <button type="button" class="btn btn-primary btn-sm" style="margin-top:6px" onclick="importReadingJSON()">Import</button>
-        <div class="hint-text">A "passages" array replaces the WHOLE test. A plain "passage_html"+"questions" JSON only fills the currently selected tab above — switch tabs and import again to add each passage separately.</div>
+    <div class="form-group"><label>Reading format</label>
+      <div style="display:flex;gap:16px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="single" ${TASK_FORMAT==='single'?'checked':''} onchange="onReadingFormatChange('single')" style="width:auto"/> Single passage</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="full" ${TASK_FORMAT==='full'?'checked':''} onchange="onReadingFormatChange('full')" style="width:auto"/> Full Test (multiple passages, timer, tabs)</label>
       </div>
     </div>
-    <div class="hint-text" style="margin-top:-6px">${TASK_FULLTEST?`Importing into: <strong>${(TASK_PASSAGES[ACTIVE_PASSAGE]?.title||'Passage '+(ACTIVE_PASSAGE+1)).replace(/</g,'&lt;')}</strong> — switch tabs above before pasting a different passage's JSON.`:'Tip: check "Full Reading Test" first and use "+ Passage" to create tabs for Passage 2/3, then switch to each tab before importing its JSON.'}</div>
-    ${tabsHtml}
-    ${titleField}
-    <div class="form-group"><label>Reading Passage${TASK_FULLTEST?' '+(ACTIVE_PASSAGE+1)+' Text':''}</label>
-      <div id="passage-toolbar" style="display:flex;gap:6px;margin-bottom:6px">
-        <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('bold')"><strong>B</strong></button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('italic')"><em>I</em></button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'H3')">Heading</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'P')">Paragraph</button>
+    <div class="form-group" style="border:1.5px dashed var(--border);border-radius:10px;padding:10px 12px">
+      <button type="button" class="btn btn-outline btn-sm" onclick="toggleJsonImport()" id="json-import-toggle">⤓ Import JSON</button>
+      <div id="json-import-box" style="display:none;margin-top:10px">
+        <div class="hint-text" style="margin-bottom:6px">Paste a task JSON ({"passage_html","questions":[...]}\u00A0for a single passage, or {"time_limit_minutes","passages":[...],"questions":[...]}\u00A0for a Full Test). This replaces the passage(s) and question list currently in the builder below.</div>
+        <textarea id="json-import-text" placeholder='{"passage_html":"...","questions":[...]}' style="min-height:140px;font-family:monospace;font-size:12px"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn btn-primary btn-sm" style="width:auto" onclick="applyJsonImport()">Apply to builder</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="toggleJsonImport()">Cancel</button>
+        </div>
       </div>
-      <div id="m-passage" contenteditable="true" style="min-height:180px;max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${TASK_PASSAGES[ACTIVE_PASSAGE].passage_html||'<p></p>'}</div>
-      <div class="hint-text">${TASK_FULLTEST?`Editing Passage ${ACTIVE_PASSAGE+1} of ${TASK_PASSAGES.length}. Switching tabs auto-saves what you typed here.`:'Paste or type the passage. Use the buttons above for basic formatting.'}</div>
     </div>
+    <div id="reading-format-fields"></div>
     <div id="question-builder"></div>`;
+  renderReadingFormatFields({});
   renderQuestionBuilder();
 }
 
-// Pulls the live contenteditable/title DOM values back into TASK_PASSAGES
-// before we navigate away from the currently-active passage (tab switch,
-// add/remove passage, toggling full-test mode, or saving).
-function syncActivePassage(){
-  const p = TASK_PASSAGES[ACTIVE_PASSAGE]; if(!p) return;
-  const passageEl=document.getElementById('m-passage'); if(passageEl) p.passage_html=passageEl.innerHTML;
-  const titleEl=document.getElementById('m-passage-title'); if(titleEl) p.title=titleEl.value;
+function toggleJsonImport(){
+  const box=document.getElementById('json-import-box');
+  if(!box) return;
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
 }
-function updatePassageTitle(v){ if(TASK_PASSAGES[ACTIVE_PASSAGE]) TASK_PASSAGES[ACTIVE_PASSAGE].title=v; }
 
-function switchPassageTab(idx){ syncActivePassage(); ACTIVE_PASSAGE=idx; renderReadingFields(); }
+// Parses pasted JSON into TASK_FORMAT / TASK_PASSAGES / TASK_SINGLE_PASSAGE_HTML
+// / TASK_QUESTIONS and rebuilds the reading builder UI from it. Accepts either
+// the single-passage shape ({passage_html, questions}) or the full-test shape
+// ({time_limit_minutes, passages, questions}) — same JSON your task's
+// `content` column is saved as, so you can round-trip an exported task back in.
+function applyJsonImport(){
+  const raw = document.getElementById('json-import-text').value;
+  let data;
+  try{
+    data = JSON.parse(raw);
+  }catch(e1){
+    // Common paste issues: smart/curly quotes from docs or chat apps, and
+    // trailing commas before } or ]. Try a sanitized re-parse before giving up.
+    const sanitized = raw
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/,(\s*[}\]])/g, '$1');
+    try{
+      data = JSON.parse(sanitized);
+      toast('Fixed some smart quotes / trailing commas automatically','success');
+    }catch(e2){
+      const m = /position (\d+)/.exec(e2.message);
+      let where = '';
+      if(m){
+        const pos = parseInt(m[1]);
+        const before = raw.slice(0, pos);
+        const line = before.split('\n').length;
+        const col = pos - before.lastIndexOf('\n');
+        const snippet = raw.slice(Math.max(0,pos-25), pos+25).replace(/\n/g,'⏎');
+        where = ` (line ${line}, col ${col}) — near: …${snippet}…`;
+      }
+      return toast('Invalid JSON: '+e2.message+where,'error');
+    }
+  }
+  if(!data || typeof data!=='object') return toast('JSON must be an object','error');
+  if(!Array.isArray(data.questions)) return toast('JSON needs a "questions" array','error');
+
+  if(Array.isArray(data.passages) && data.passages.length){
+    TASK_FORMAT = 'full';
+    TASK_PASSAGES = data.passages.map(p=>({title:p.title||'',html:p.html||'<p></p>'}));
+  } else {
+    TASK_FORMAT = 'single';
+    TASK_SINGLE_PASSAGE_HTML = data.passage_html || '<p></p>';
+  }
+  TASK_QUESTIONS = data.questions.map(q=>({...q}));
+  if(TASK_FORMAT==='full'){
+    const timeEl = ()=>document.getElementById('m-fulltest-time');
+    renderReadingSkillFields();
+    if(data.time_limit_minutes && timeEl()) timeEl().value = data.time_limit_minutes;
+  } else {
+    renderReadingSkillFields();
+  }
+  toast('Imported into builder — review below, then Save Task','success');
+}
+
+function onReadingFormatChange(fmt){
+  TASK_FORMAT = fmt;
+  if(fmt==='full' && TASK_PASSAGES.length===0) TASK_PASSAGES=[{title:'',html:'<p></p>'}];
+  // Questions created under one format don't carry over cleanly to the
+  // other (flat list vs passage-tagged) — safer to reset than to guess.
+  TASK_QUESTIONS = [];
+  renderReadingFormatFields({});
+  renderQuestionBuilder();
+}
+
+function captureCurrentPassageHtml(){
+  // Read whatever is currently in the DOM editors back into TASK_PASSAGES
+  // before re-rendering, so edits aren't lost.
+  if(TASK_FORMAT==='full'){
+    TASK_PASSAGES.forEach((p,pi)=>{
+      const titleEl=document.getElementById(`m-passage-title-${pi}`);
+      const htmlEl=document.getElementById(`m-passage-html-${pi}`);
+      if(titleEl) p.title=titleEl.value;
+      if(htmlEl) p.html=htmlEl.innerHTML;
+    });
+  }
+}
+
+function renderReadingFormatFields(data){
+  const el=document.getElementById('reading-format-fields');
+  if(!el) return;
+  const toolbar = (idSuffix)=>`<div style="display:flex;gap:6px;margin-bottom:6px">
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('bold')"><strong>B</strong></button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('italic')"><em>I</em></button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'H3')">Heading</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="document.execCommand('formatBlock',false,'P')">Paragraph</button>
+  </div>`;
+
+  if(TASK_FORMAT==='single'){
+    el.innerHTML = `<div class="form-group"><label>Reading Passage</label>
+      ${toolbar()}
+      <div id="m-passage" contenteditable="true" style="min-height:180px;max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${TASK_SINGLE_PASSAGE_HTML||'<p></p>'}</div>
+      <div class="hint-text">Paste or type the passage. Use the buttons above for basic formatting.</div>
+    </div>`;
+    return;
+  }
+
+  // full test
+  el.innerHTML = `<div class="form-group"><label>Time limit (minutes)</label>
+      <input type="number" id="m-fulltest-time" value="${data.time_limit_minutes||60}" style="max-width:120px"/>
+    </div>
+    <div class="form-group"><label>Passages</label>
+      <div id="passages-list">
+        ${TASK_PASSAGES.map((p,pi)=>`
+          <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <strong style="font-size:13px">Passage ${pi+1}</strong>
+              ${TASK_PASSAGES.length>1?`<button type="button" class="btn btn-danger btn-sm" onclick="removePassage(${pi})">Remove passage</button>`:''}
+            </div>
+            <input id="m-passage-title-${pi}" placeholder="Passage title" value="${(p.title||'').replace(/"/g,'&quot;')}" style="margin-bottom:6px"/>
+            ${toolbar()}
+            <div id="m-passage-html-${pi}" contenteditable="true" style="min-height:160px;max-height:280px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${p.html||'<p></p>'}</div>
+          </div>`).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addPassage()">+ Add passage</button>
+      <div class="hint-text">Each question below can be assigned to one of these passages — students will see tabs matching them.</div>
+    </div>`;
+}
 
 function addPassage(){
-  syncActivePassage();
-  TASK_PASSAGES.push({ title:'Passage '+(TASK_PASSAGES.length+1), passage_html:'<p></p>', questions:[] });
-  ACTIVE_PASSAGE = TASK_PASSAGES.length-1;
-  renderReadingFields();
+  captureCurrentPassageHtml();
+  TASK_PASSAGES.push({title:'',html:'<p></p>'});
+  renderReadingFormatFields({});
+  renderQuestionBuilder(); // refresh passage dropdowns in question editors
+}
+function removePassage(pi){
+  captureCurrentPassageHtml();
+  TASK_PASSAGES.splice(pi,1);
+  // re-point any questions that referenced the removed (or higher) passage
+  TASK_QUESTIONS.forEach(q=>{
+    if(q.passage===pi) q.passage=0;
+    else if(q.passage>pi) q.passage=q.passage-1;
+  });
+  renderReadingFormatFields({});
+  renderQuestionBuilder();
 }
 
-function removePassage(idx){
-  if(TASK_PASSAGES.length<=1) return toast('A full test needs at least one passage','error');
-  if(!confirm('Remove this passage and all of its questions?')) return;
-  TASK_PASSAGES.splice(idx,1);
-  ACTIVE_PASSAGE = Math.min(ACTIVE_PASSAGE, TASK_PASSAGES.length-1);
-  renderReadingFields();
-}
 
-function toggleImportBox(){
-  const b=document.getElementById('import-box');
-  if(b) b.style.display = (b.style.display==='none'||!b.style.display) ? 'block' : 'none';
-}
-
-// Lets you paste a JSON blob (e.g. generated by Claude from raw passage
-// text + an answer key) instead of building a test through the UI.
-// Accepts either {passages:[{title,passage_html,questions}, ...]} for a
-// full test, or {passage_html, questions} for a single passage.
-function importReadingJSON(){
-  const raw = document.getElementById('m-import-json').value.trim();
-  if(!raw) return toast('Paste some JSON first','error');
-  let parsed;
-  try{ parsed = JSON.parse(raw); } catch(e){ return toast('Invalid JSON: '+e.message,'error'); }
-
-  if(Array.isArray(parsed.passages) && parsed.passages.length){
-    TASK_FULLTEST = true;
-    TASK_PASSAGES = parsed.passages.map((p,pi)=>({
-      title: p.title || ('Passage '+(pi+1)),
-      passage_html: p.passage_html || '<p></p>',
-      questions: (p.questions||[]).map(q=>({...q}))
-    }));
-  } else if(Array.isArray(parsed.questions)){
-    // Single-passage JSON: fill ONLY the currently active tab, leaving any
-    // other passages untouched. This lets you import Passage 1, switch to
-    // the Passage 2 tab, import Passage 2's JSON separately, etc.
-    if(!TASK_PASSAGES.length) TASK_PASSAGES=[{title:'Passage 1',passage_html:'<p></p>',questions:[]}];
-    const target = TASK_PASSAGES[ACTIVE_PASSAGE];
-    target.passage_html = parsed.passage_html || target.passage_html || '<p></p>';
-    target.questions = parsed.questions.map(q=>({...q}));
-    if(parsed.title) target.title = parsed.title;
-  } else {
-    return toast('JSON must contain a "passages" array (full test) or a "questions" array (single passage)','error');
-  }
-  renderReadingFields();
-  toast('Imported into "'+(TASK_PASSAGES[ACTIVE_PASSAGE].title||'this passage')+'" — review it below, then hit Save','success');
-}
-
-// Switching the "Full Reading Test" checkbox. Turning it on just wraps the
-// current single passage as Passage 1 of a test. Turning it off (when there
-// are multiple passages) discards the others after confirmation.
-function toggleFullTest(on){
-  syncActivePassage();
-  if(!on && TASK_PASSAGES.length>1){
-    if(!confirm('Switching back to a single passage will discard the OTHER passages and their questions (the one you\'re currently viewing is kept). Continue?')){
-      renderReadingFields(); // re-render to restore the checkbox to its previous (checked) state
-      return;
-    }
-    TASK_PASSAGES = [TASK_PASSAGES[ACTIVE_PASSAGE]];
-    ACTIVE_PASSAGE = 0;
-  }
-  TASK_FULLTEST = on;
-  renderReadingFields();
-}
-
-// ── QUESTION BUILDER (mixed types: gap_fill / tfng / mcq / matching / short_answer) ──
 function renderQuestionBuilder(){
   const el=document.getElementById('question-builder');
   if(!el) return;
@@ -529,7 +551,8 @@ function renderQuestionBuilder(){
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('tfng')">+ True/False/NG</button>`:''}
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('ynng')">+ Yes/No/NG</button>`:''}
       <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('mcq')">+ Multiple Choice</button>
-      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('matching')">+ Matching Features</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('mcq_multi')">+ Choose Two/More</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('matching')">+ Matching (tick the grid checkbox for paragraph/feature matching)</button>
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('sentence_endings')">+ Sentence Endings</button>`:''}
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('summary_completion')">+ Summary Completion</button>`:''}
       ${showTfng?`<button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('note_completion')">+ Note Completion</button>`:''}
@@ -542,12 +565,17 @@ function renderQuestionBuilder(){
 }
 
 function questionEditorHtml(q, qi){
-  const typeLabel = {gap_fill:'Gap Fill',tfng:'True/False/NG',ynng:'Yes/No/NG',mcq:'Multiple Choice',matching:'Matching Features',short_answer:'Short Answer',sentence_endings:'Sentence Endings',summary_completion:'Summary Completion',note_completion:'Note Completion',table_completion:'Table Completion',flow_chart:'Flow-Chart',diagram_label:'Diagram Label'}[q.type]||q.type;
+  const typeLabel = {gap_fill:'Gap Fill',tfng:'True/False/NG',ynng:'Yes/No/NG',mcq:'Multiple Choice',mcq_multi:'Choose Two/More',matching:'Matching',sentence_endings:'Sentence Endings',summary_completion:'Summary Completion',note_completion:'Note Completion',table_completion:'Table Completion',flow_chart:'Flow-Chart',diagram_label:'Diagram Label',short_answer:'Short Answer'}[q.type]||q.type;
+  const passageSelectHtml = (TASK_FORMAT==='full') ? `
+    <select onchange="updateQuestion(${qi},'passage',parseInt(this.value))" style="margin-bottom:8px">
+      ${TASK_PASSAGES.map((p,pi)=>`<option value="${pi}" ${ (q.passage||0)===pi ?'selected':''}>${p.title?('Passage '+(pi+1)+' — '+p.title):('Passage '+(pi+1))}</option>`).join('')}
+    </select>` : '';
   const common = `<div class="q-builder-item" style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span class="skill-pill">${typeLabel}</span>
       <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(${qi})">Remove</button>
     </div>
+    ${passageSelectHtml}
     <input placeholder="Question / instruction text" value="${(q.question||'').replace(/"/g,'&quot;')}" oninput="updateQuestion(${qi},'question',this.value)" style="margin-bottom:8px"/>`;
 
   if(q.type==='gap_fill' || q.type==='short_answer'){
@@ -575,11 +603,32 @@ function questionEditorHtml(q, qi){
       </div>`;
     }).join('') + `</div>`;
   }
+  if(q.type==='mcq_multi'){
+    const opts = q.options && q.options.length ? q.options : Array(5).fill('');
+    const answer = Array.isArray(q.answer) ? q.answer : [];
+    return common + `
+      <div class="hint-text" style="margin-bottom:6px">Check all correct options (students must choose exactly this many):</div>
+      ${opts.map((o,oi)=>{
+        const letter=String.fromCharCode(65+oi);
+        const checked = answer.includes(letter);
+        return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleMcqMultiAnswer(${qi},'${letter}',this.checked)" style="width:auto"/>
+          <span style="font-weight:600;width:18px">${letter}</span>
+          <input placeholder="Option ${letter}" value="${(o||'').replace(/"/g,'&quot;')}" oninput="updateOption(${qi},${oi},this.value)" style="flex:1"/>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeMcqMultiOption(${qi},${oi})">✕</button>
+        </div>`;
+      }).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="addMcqMultiOption(${qi})" style="margin-top:4px">+ Option</button>
+    </div>`;
+  }
   if(q.type==='matching' || q.type==='sentence_endings'){
     const items = q.items && q.items.length ? q.items : [{label:'',answer:''}];
     const matchOptions = q.matchOptions && q.matchOptions.length ? q.matchOptions : ['',''];
     const isSentEndings = q.type==='sentence_endings';
-    return common + `
+    const gridToggle = (q.type==='matching') ? `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:10px">
+      <input type="checkbox" style="width:auto" ${q.grid?'checked':''} onchange="updateQuestion(${qi},'grid',this.checked)"/> Display as grid table (Matching Information / Matching Features style — click cells instead of a dropdown)
+    </label>` : '';
+    return common + gridToggle + `
       <div class="hint-text" style="margin-bottom:6px">${isSentEndings?'Sentence endings (A, B, C…):':'Option pool students choose from:'}</div>
       ${matchOptions.map((o,oi)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <span style="font-weight:600;width:22px">${isSentEndings?String.fromCharCode(65+oi):oi+1+'.'}</span>
@@ -604,7 +653,8 @@ function questionEditorHtml(q, qi){
     const typeHint = {summary_completion:'Use {1}, {2}, {3}… in the context text to mark gaps.',note_completion:'Use {1}, {2}… to mark blank spaces in your notes.',table_completion:'Use {1}, {2}… to mark blank cells.',flow_chart:'Use {1}, {2}… to mark blank steps.'}[q.type]||'Use {N} placeholders for gaps.';
     return common + `
       <div class="hint-text" style="margin-bottom:6px">${typeHint}</div>
-      <textarea placeholder="Context text with {1} {2} {3} placeholders…" oninput="updateQuestion(${qi},'context',this.value)" style="min-height:100px;font-size:13px">${(q.context||'').replace(/</g,'&lt;')}</textarea>
+      <textarea id="m-context-${qi}" placeholder="Context text with {1} {2} {3} placeholders…" oninput="updateQuestion(${qi},'context',this.value)" style="min-height:100px;font-size:13px">${(q.context||'').replace(/</g,'&lt;')}</textarea>
+      <button type="button" class="btn btn-outline btn-sm" style="margin-top:6px" onclick="insertGapPlaceholder(${qi})">+ Insert Gap</button>
       <div class="hint-text" style="margin:8px 0 6px">Correct answers for each gap (in order):</div>
       ${items.map((it,ii)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <span style="font-weight:600;min-width:28px">{${ii+1}}</span>
@@ -636,18 +686,64 @@ function updateMatchItem(qi,ii,field,value){ TASK_QUESTIONS[qi].items[ii][field]
 function addMatchOption(qi){ TASK_QUESTIONS[qi].matchOptions=TASK_QUESTIONS[qi].matchOptions||[]; TASK_QUESTIONS[qi].matchOptions.push(''); renderQuestionBuilder(); }
 function removeMatchOption(qi,oi){ TASK_QUESTIONS[qi].matchOptions.splice(oi,1); renderQuestionBuilder(); }
 function updateMatchOption(qi,oi,value){ TASK_QUESTIONS[qi].matchOptions[oi]=value; }
+function toggleMcqMultiAnswer(qi,letter,checked){
+  const q=TASK_QUESTIONS[qi];
+  q.answer = Array.isArray(q.answer) ? q.answer : [];
+  if(checked){ if(!q.answer.includes(letter)) q.answer.push(letter); }
+  else q.answer = q.answer.filter(l=>l!==letter);
+}
+function addMcqMultiOption(qi){ TASK_QUESTIONS[qi].options=TASK_QUESTIONS[qi].options||[]; TASK_QUESTIONS[qi].options.push(''); renderQuestionBuilder(); }
+function removeMcqMultiOption(qi,oi){
+  const q=TASK_QUESTIONS[qi];
+  const letter=String.fromCharCode(65+oi);
+  q.options.splice(oi,1);
+  q.answer = (q.answer||[]).filter(l=>l!==letter);
+  renderQuestionBuilder();
+}
 function addGapItem(qi){ TASK_QUESTIONS[qi].items=TASK_QUESTIONS[qi].items||[]; TASK_QUESTIONS[qi].items.push({answer:''}); renderQuestionBuilder(); }
 function removeGapItem(qi,ii){ TASK_QUESTIONS[qi].items.splice(ii,1); renderQuestionBuilder(); }
 function updateGapItem(qi,ii,value){ if(!TASK_QUESTIONS[qi].items) TASK_QUESTIONS[qi].items=[]; if(!TASK_QUESTIONS[qi].items[ii]) TASK_QUESTIONS[qi].items[ii]={answer:''}; TASK_QUESTIONS[qi].items[ii].answer=value; }
 
+// Inserts the next {N} gap placeholder into the context textarea at the
+// current cursor position (works for summary/note/table/flow_chart
+// completion questions), and adds a matching empty answer slot.
+function insertGapPlaceholder(qi){
+  const ta = document.getElementById(`m-context-${qi}`);
+  TASK_QUESTIONS[qi].items = TASK_QUESTIONS[qi].items || [];
+  const n = TASK_QUESTIONS[qi].items.length + 1;
+  const placeholder = `{${n}}`;
+  if(ta){
+    const start = ta.selectionStart ?? ta.value.length;
+    const end = ta.selectionEnd ?? ta.value.length;
+    const before = ta.value.slice(0,start), after = ta.value.slice(end);
+    const newVal = before + placeholder + after;
+    TASK_QUESTIONS[qi].context = newVal;
+  } else {
+    TASK_QUESTIONS[qi].context = (TASK_QUESTIONS[qi].context||'') + placeholder;
+  }
+  TASK_QUESTIONS[qi].items.push({answer:''});
+  renderQuestionBuilder();
+  // restore focus + caret right after the inserted placeholder
+  const newTa = document.getElementById(`m-context-${qi}`);
+  if(newTa){
+    newTa.focus();
+    const pos = newTa.value.indexOf(placeholder) + placeholder.length;
+    newTa.setSelectionRange(pos,pos);
+  }
+}
+
 // Validates the in-progress question list before save. Returns an error
 // message string if something's wrong, or null if everything checks out.
-function validateQuestions(questions){
+function validateQuestions(questions, passages){
   for(const q of questions){
     if(!q.question.trim()) return 'Every question needs question text';
+    if(passages && (q.passage===undefined || q.passage<0 || q.passage>=passages.length)) return 'Assign every question to a valid passage';
     if(q.type==='mcq'){
       if(q.options.some(o=>!o.trim())) return 'Fill in all multiple-choice options';
       if(!q.answer) return 'Pick the correct option for every multiple-choice question';
+    } else if(q.type==='mcq_multi'){
+      if(!q.options || q.options.some(o=>!o.trim())) return 'Fill in all options for choose-multiple questions';
+      if(!q.answer || q.answer.length<2) return 'Check at least two correct options for choose-multiple questions';
     } else if(q.type==='matching'||q.type==='sentence_endings'){
       if(!q.matchOptions || q.matchOptions.some(o=>!o.trim())) return 'Fill in all options (the pool students choose from)';
       if(!q.items || q.items.length===0) return 'Add at least one item to match';
@@ -672,7 +768,9 @@ function validateQuestions(questions){
 
 function addQuestion(type){
   const base = {type, question:'', answer:''};
+  if(TASK_FORMAT==='full') base.passage = 0;
   if(type==='mcq') base.options = Array(TASK_QUESTIONS_SKILL==='listening'?3:4).fill('');
+  if(type==='mcq_multi'){ base.options = Array(5).fill(''); base.answer=[]; base.maxAnswers=2; }
   if(type==='matching'||type==='sentence_endings'){ base.items=[{label:'',answer:''}]; base.matchOptions=['','']; delete base.answer; }
   if(type==='diagram_label'){ base.items=[{label:'1',answer:''}]; base.image_url=''; delete base.answer; }
   if(type==='summary_completion'||type==='note_completion'||type==='table_completion'||type==='flow_chart'){ base.items=[{answer:''}]; base.context=''; delete base.answer; }
@@ -797,26 +895,22 @@ async function saveModal(){
       let payload = { title, lesson_id, skill, order };
 
       if(skill==='reading'){
-        syncActivePassage();
-        if(TASK_FULLTEST){
-          if(!TASK_PASSAGES.length) return toast('Add at least one passage','error');
-          for(let pi=0; pi<TASK_PASSAGES.length; pi++){
-            const p = TASK_PASSAGES[pi];
-            const label = p.title || ('Passage '+(pi+1));
-            if(!p.questions || p.questions.length===0) return toast(`${label} needs at least one question`,'error');
-            const err = validateQuestions(p.questions);
-            if(err) return toast(`${label}: ${err}`,'error');
-          }
+        if(TASK_FORMAT==='full'){
+          captureCurrentPassageHtml();
+          if(TASK_PASSAGES.length===0 || TASK_PASSAGES.every(p=>!p.html||p.html==='<p></p>')) return toast('Add at least one passage','error');
+          if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
+          const err = validateQuestions(TASK_QUESTIONS, TASK_PASSAGES);
+          if(err) return toast(err,'error');
+          const time_limit_minutes = parseInt(document.getElementById('m-fulltest-time').value)||60;
           payload.task_type='reading_full_test';
-          payload.content=JSON.stringify({ passages: TASK_PASSAGES.map(p=>({ title:p.title, passage_html:p.passage_html, questions:p.questions })) });
+          payload.content=JSON.stringify({ time_limit_minutes, passages: TASK_PASSAGES, questions: TASK_QUESTIONS });
         } else {
-          const passage_html = TASK_PASSAGES[0].passage_html;
-          const questions = TASK_PASSAGES[0].questions;
-          if(questions.length===0) return toast('Add at least one question','error');
-          const err = validateQuestions(questions);
+          const passage_html = document.getElementById('m-passage').innerHTML;
+          if(TASK_QUESTIONS.length===0) return toast('Add at least one question','error');
+          const err = validateQuestions(TASK_QUESTIONS);
           if(err) return toast(err,'error');
           payload.task_type='reading_mixed';
-          payload.content=JSON.stringify({ passage_html, questions });
+          payload.content=JSON.stringify({ passage_html, questions: TASK_QUESTIONS });
         }
       } else if(skill==='listening'){
         const audio_url=document.getElementById('m-audiourl').value;
@@ -876,24 +970,34 @@ function openSubmission(id){
   if(skill==='reading' || skill==='listening'){
     const task = S.adminTasks.find(t=>t.id===sub.task_id);
     let taskData={}; try{taskData=JSON.parse(task?.content||'{}');}catch(e){}
-    // Full reading tests store questions nested inside passages; flatten them
-    // into one list so the breakdown below (and its qi-based indexing into
-    // savedAnswers, which the student-side grader also treats as flat) works
-    // the same way for both single-passage and full-test submissions.
-    const questions = taskData.passages ? taskData.passages.flatMap(p=>p.questions||[]) : (taskData.questions||[]);
+    const questions = taskData.questions||[];
     let savedAnswers={}; try{savedAnswers=JSON.parse(sub.answer||'{}');}catch(e){}
     const breakdown = questions.map((q,qi)=>{
-      if(q.type==='matching'){
+      if(['matching','sentence_endings','diagram_label','table_completion','summary_completion','flow_chart','note_completion'].includes(q.type)){
         const items=q.items||[];
         const savedMatch = savedAnswers[qi]&&typeof savedAnswers[qi]==='object'?savedAnswers[qi]:{};
+        const fuzzy = ['diagram_label','table_completion','summary_completion','flow_chart','note_completion'].includes(q.type);
         return items.map((it,ii)=>{
-          const given=savedMatch[ii]||'(no answer)';
-          const ok = given===it.answer;
+          const rawGiven = savedMatch[ii];
+          const given = (rawGiven===undefined || rawGiven==='') ? '(no answer)' : rawGiven;
+          const correctAns = it.answer||'';
+          const ok = fuzzy
+            ? String(given).toLowerCase().trim()===correctAns.toLowerCase().trim()
+            : given===correctAns;
           return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-            <span>${qi+1}. ${it.label}</span>
-            <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+it.answer+')'}</span>
+            <span>${qi+1}. ${it.label||('Gap '+(ii+1))}</span>
+            <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+correctAns+')'}</span>
           </div>`;
         }).join('');
+      }
+      if(q.type==='mcq_multi'){
+        const savedArr = Array.isArray(savedAnswers[qi])?savedAnswers[qi]:[];
+        const correctArr = q.answer||[];
+        const ok = correctArr.length===savedArr.length && correctArr.every(l=>savedArr.includes(l));
+        return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span>${qi+1}. ${q.question}</span>
+          <span style="color:${ok?'#15803d':'#dc2626'}">${savedArr.join(', ')||'(no answer)'} ${ok?'✓':'(answer: '+correctArr.join(', ')+')'}</span>
+        </div>`;
       }
       const given = savedAnswers[qi]!==undefined?savedAnswers[qi]:'(no answer)';
       const ok = q.type==='gap_fill'||q.type==='short_answer'
