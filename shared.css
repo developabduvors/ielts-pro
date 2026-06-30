@@ -459,3 +459,54 @@ audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.1); }
 }
 
 
+
+/* ── Matching question grid table (IELTS-style clickable cells) ── */
+.table-container { overflow-x: auto; margin: 10px 0; }
+.matching-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.matching-table th {
+  background-color: var(--blue, #007bff); color: #fff; padding: 10px 8px;
+  text-align: center; font-weight: bold; border: 1px solid #ddd;
+}
+.matching-table td { padding: 10px 8px; border: 1px solid #ddd; vertical-align: middle; }
+.matching-table .statement { text-align: left; width: auto; }
+.matching-table td:not(.statement) { text-align: center; width: 44px; min-width: 40px; }
+.matching-table th:not(:first-child) { width: 44px; min-width: 40px; }
+.matching-table .clickable-cell { cursor: pointer; transition: background-color .2s ease; position: relative; }
+.matching-table .clickable-cell:hover { background-color: #f0f8ff; border-color: var(--blue, #007bff); }
+.matching-table .clickable-cell.selected { background-color: #e3f2fd; }
+.matching-table .clickable-cell.selected::after {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 10px; height: 10px; border-radius: 50%; background-color: var(--blue, #007bff);
+}
+.matching-table .clickable-cell.correct { background-color: #d4edda !important; border-color: #c3e6cb; }
+.matching-table .clickable-cell.correct::after { background-color: #15803d; }
+.matching-table .clickable-cell.incorrect { background-color: #f8d7da !important; border-color: #f5c6cb; }
+.matching-table .clickable-cell.correct-answer-highlight { background-color: #d4edda !important; border-color: #c3e6cb; }
+@media (max-width: 640px) {
+  .matching-table { font-size: 12px; }
+  .matching-table td:not(.statement), .matching-table th:not(:first-child) { width: 32px; min-width: 28px; padding: 6px 4px; }
+}
+
+/* ── TFNG/YNNG vertical radio-list layout (matches Reading-test reference) ── */
+.tf-option-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.tf-option-radio {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer;
+  transition: border-color .2s, background-color .2s; font-size: 14px;
+}
+.tf-option-radio:hover { border-color: var(--blue, #3b82f6); }
+.tf-option-radio .tf-dot {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border);
+  flex-shrink: 0; position: relative; transition: border-color .2s;
+}
+.tf-option-radio.selected .tf-dot, .tf-option-radio.correct .tf-dot { border-color: var(--blue, #3b82f6); }
+.tf-option-radio.selected .tf-dot::after, .tf-option-radio.correct .tf-dot::after, .tf-option-radio.wrong .tf-dot::after {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 8px; height: 8px; border-radius: 50%; background: var(--blue, #3b82f6);
+}
+.tf-option-radio.selected { border-color: var(--blue, #3b82f6); background: #eff6ff; }
+.tf-option-radio.correct { border-color: var(--green); background: #f0fdf4; }
+.tf-option-radio.correct .tf-dot::after { background: var(--green); }
+.tf-option-radio.wrong { border-color: var(--red); background: #fef2f2; }
+.tf-option-radio.wrong .tf-dot::after { background: var(--red); }
+.tf-option-radio[disabled-look] { cursor: default; }
