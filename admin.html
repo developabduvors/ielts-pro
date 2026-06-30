@@ -314,6 +314,7 @@ let TASK_QUESTIONS_SKILL = 'reading';
 // each question tagged with a `passage` index, rendered with tabs/timer.
 let TASK_FORMAT = 'single';
 let TASK_PASSAGES = [];
+let TASK_SINGLE_PASSAGE_HTML = '<p></p>';
 
 function renderTaskSkillFields(skill, t){
   const el=document.getElementById('task-skill-fields');
@@ -324,19 +325,9 @@ function renderTaskSkillFields(skill, t){
     TASK_FORMAT = (t && t.skill==='reading' && t.task_type==='reading_full_test') ? 'full' : 'single';
     TASK_PASSAGES = (TASK_FORMAT==='full' && data.passages) ? data.passages.map(p=>({...p})) : [];
     if(TASK_FORMAT==='full' && TASK_PASSAGES.length===0) TASK_PASSAGES = [{title:'',html:'<p></p>'}];
-
-    el.innerHTML = `
-      <div class="form-group"><label>Reading format</label>
-        <div style="display:flex;gap:16px;align-items:center">
-          <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="single" ${TASK_FORMAT==='single'?'checked':''} onchange="onReadingFormatChange('single')" style="width:auto"/> Single passage</label>
-          <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="full" ${TASK_FORMAT==='full'?'checked':''} onchange="onReadingFormatChange('full')" style="width:auto"/> Full Test (multiple passages, timer, tabs)</label>
-        </div>
-      </div>
-      <div id="reading-format-fields"></div>
-      <div id="question-builder"></div>`;
+    TASK_SINGLE_PASSAGE_HTML = (TASK_FORMAT==='single') ? (data.passage_html||'<p></p>') : '<p></p>';
     TASK_QUESTIONS_SKILL = 'reading';
-    renderReadingFormatFields(data);
-    renderQuestionBuilder();
+    renderReadingSkillFields();
   } else if(skill==='listening'){
     el.innerHTML = `
       <div class="form-group">
@@ -378,6 +369,70 @@ function renderTaskSkillFields(skill, t){
   }
 }
 
+function renderReadingSkillFields(){
+  const el=document.getElementById('task-skill-fields');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="form-group"><label>Reading format</label>
+      <div style="display:flex;gap:16px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="single" ${TASK_FORMAT==='single'?'checked':''} onchange="onReadingFormatChange('single')" style="width:auto"/> Single passage</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400"><input type="radio" name="reading-format" value="full" ${TASK_FORMAT==='full'?'checked':''} onchange="onReadingFormatChange('full')" style="width:auto"/> Full Test (multiple passages, timer, tabs)</label>
+      </div>
+    </div>
+    <div class="form-group" style="border:1.5px dashed var(--border);border-radius:10px;padding:10px 12px">
+      <button type="button" class="btn btn-outline btn-sm" onclick="toggleJsonImport()" id="json-import-toggle">⤓ Import JSON</button>
+      <div id="json-import-box" style="display:none;margin-top:10px">
+        <div class="hint-text" style="margin-bottom:6px">Paste a task JSON ({"passage_html","questions":[...]}\u00A0for a single passage, or {"time_limit_minutes","passages":[...],"questions":[...]}\u00A0for a Full Test). This replaces the passage(s) and question list currently in the builder below.</div>
+        <textarea id="json-import-text" placeholder='{"passage_html":"...","questions":[...]}' style="min-height:140px;font-family:monospace;font-size:12px"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn btn-primary btn-sm" style="width:auto" onclick="applyJsonImport()">Apply to builder</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="toggleJsonImport()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="reading-format-fields"></div>
+    <div id="question-builder"></div>`;
+  renderReadingFormatFields({});
+  renderQuestionBuilder();
+}
+
+function toggleJsonImport(){
+  const box=document.getElementById('json-import-box');
+  if(!box) return;
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+// Parses pasted JSON into TASK_FORMAT / TASK_PASSAGES / TASK_SINGLE_PASSAGE_HTML
+// / TASK_QUESTIONS and rebuilds the reading builder UI from it. Accepts either
+// the single-passage shape ({passage_html, questions}) or the full-test shape
+// ({time_limit_minutes, passages, questions}) — same JSON your task's
+// `content` column is saved as, so you can round-trip an exported task back in.
+function applyJsonImport(){
+  const raw = document.getElementById('json-import-text').value;
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ return toast('That\'s not valid JSON: '+e.message,'error'); }
+  if(!data || typeof data!=='object') return toast('JSON must be an object','error');
+  if(!Array.isArray(data.questions)) return toast('JSON needs a "questions" array','error');
+
+  if(Array.isArray(data.passages) && data.passages.length){
+    TASK_FORMAT = 'full';
+    TASK_PASSAGES = data.passages.map(p=>({title:p.title||'',html:p.html||'<p></p>'}));
+  } else {
+    TASK_FORMAT = 'single';
+    TASK_SINGLE_PASSAGE_HTML = data.passage_html || '<p></p>';
+  }
+  TASK_QUESTIONS = data.questions.map(q=>({...q}));
+  if(TASK_FORMAT==='full'){
+    const timeEl = ()=>document.getElementById('m-fulltest-time');
+    renderReadingSkillFields();
+    if(data.time_limit_minutes && timeEl()) timeEl().value = data.time_limit_minutes;
+  } else {
+    renderReadingSkillFields();
+  }
+  toast('Imported into builder — review below, then Save Task','success');
+}
+
 function onReadingFormatChange(fmt){
   TASK_FORMAT = fmt;
   if(fmt==='full' && TASK_PASSAGES.length===0) TASK_PASSAGES=[{title:'',html:'<p></p>'}];
@@ -414,7 +469,7 @@ function renderReadingFormatFields(data){
   if(TASK_FORMAT==='single'){
     el.innerHTML = `<div class="form-group"><label>Reading Passage</label>
       ${toolbar()}
-      <div id="m-passage" contenteditable="true" style="min-height:180px;max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${data.passage_html||'<p></p>'}</div>
+      <div id="m-passage" contenteditable="true" style="min-height:180px;max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6">${TASK_SINGLE_PASSAGE_HTML||'<p></p>'}</div>
       <div class="hint-text">Paste or type the passage. Use the buttons above for basic formatting.</div>
     </div>`;
     return;
