@@ -137,14 +137,14 @@ function buildQuestionHtml(q, qi){
         <div class="q-num">${qi+1}</div>
         <div class="q-label">${q.question||''}</div>
       </div>
-      <div class="tfng-group" style="margin-left:34px">
+      <div class="tf-option-list" style="margin-left:34px;width:100%;max-width:280px">
         ${opts.map(o=>{
           const isSelected = saved===o;
           const correct = q.answer||'';
           let cls = isSelected ? 'selected' : '';
           if(isSubmitted && isSelected) cls = saved===correct?'correct':'wrong';
           if(isSubmitted && o===correct && !isSelected) cls='correct';
-          return `<button class="tfng-btn ${cls}" id="qa_${qi}_${o}" ${isSubmitted?'disabled':''} onclick="selectTFNG(${qi},'${o}')">${o}</button>`;
+          return `<div class="tf-option-radio ${cls}" id="qa_${qi}_${o}" ${isSubmitted?'':`onclick="selectTFNG(${qi},'${o}')"`}><span class="tf-dot"></span>${o}</div>`;
         }).join('')}
       </div>
       ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-left:34px">Answer: <strong>${q.answer||''}</strong></div>`:''}
@@ -182,29 +182,34 @@ function buildQuestionHtml(q, qi){
         <div class="q-label">${q.question||''}</div>
       </div>
       <div style="margin-left:34px;width:100%">
-       <div class="hint-text" style="margin-bottom:12px">
-<strong>Options</strong>
-<div style="margin-top:8px">
-${matchOptions.map((o,oi)=>`
-<div style="padding:4px 0">
-<strong>${oi+1}.</strong> ${o}
-</div>
-`).join('')}
-</div>
-</div>
-        ${items.map((it,ii)=>{
-          const itemSaved = savedMatch[ii]||'';
-          const isCorrect = itemSaved===it.answer;
-          return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
-            <span style="min-width:140px;font-size:13px">${it.label}</span>
-            <select id="qa_${qi}_${ii}" ${isSubmitted?'disabled':''} onchange="selectMatching(${qi},${ii},this.value)"
-              class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):'q-input'}" style="flex:1;min-width:120px">
-              <option value="">Choose…</option>
-              ${matchOptions.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${itemSaved===o?'selected':''}>${o}</option>`).join('')}
-            </select>
-            ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">✓ <strong>${it.answer}</strong></span>`:''}
-          </div>`;
-        }).join('')}
+        <div class="table-container">
+          <table class="matching-table">
+            <thead>
+              <tr>
+                <th></th>
+                ${matchOptions.map(o=>`<th>${o}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((it,ii)=>{
+                const itemSaved = savedMatch[ii]||'';
+                return `<tr>
+                  <td class="statement">${ii+1}. ${it.label}</td>
+                  ${matchOptions.map(o=>{
+                    const isSelected = itemSaved===o;
+                    let cls = isSelected ? 'selected' : '';
+                    if(isSubmitted){
+                      if(isSelected) cls = itemSaved===it.answer ? 'correct' : 'incorrect';
+                      else if(o===it.answer) cls = 'correct-answer-highlight';
+                    }
+                    return `<td class="clickable-cell ${cls}" ${isSubmitted?'':`onclick="selectMatching(${qi},${ii},'${o.replace(/'/g,"\\'")}')"`}></td>`;
+                  }).join('')}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${isSubmitted?`<div class="hint-text" style="margin-top:6px">Correct answers: ${items.map((it,ii)=>`${ii+1}. <strong>${it.answer}</strong>`).join(' &nbsp; ')}</div>`:''}
       </div>
     </div>`;
   }
