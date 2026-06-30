@@ -32,12 +32,37 @@ Storage buckets detected:
 
 ## Architecture Decision
 
-Do not migrate this repo into a monorepo yet. The current project is a very small static app, so the safest path is:
+Updated decision for the rebuild branch:
 
-1. Keep the current structure for immediate fixes.
-2. Enforce strict student/admin separation inside the static app.
-3. Add non-destructive Supabase migration drafts.
-4. In the next architecture phase, move privileged data access behind Vercel API routes or Supabase RPC/Edge Functions before fully locking down direct table access.
+1. Keep the old static files in place while the replacement is built.
+2. Add a practical npm workspace monorepo:
+   - `apps/student-web`
+   - `apps/admin-web`
+   - `packages/shared`
+   - `packages/ui`
+3. Deploy student and admin as separate Vercel projects from the same GitHub repository.
+4. Use server-side Next.js actions and signed HTTP-only cookies for student/admin sessions.
+5. Keep Supabase service role usage server-only through Vercel environment variables.
+6. Continue using the existing production schema for compatibility, then migrate toward richer LMS tables once core flows are verified.
+
+This is safer than deleting the static app in one patch because it allows preview deployment and QA before switching production domains.
+
+## Rebuild Progress
+
+The preview branch introduces the first dynamic architecture:
+
+- `apps/student-web` - Next.js student LMS with login, dashboard, published task listing, test taking, and progress history.
+- `apps/admin-web` - Next.js teacher workspace with Supabase Auth login, dashboard analytics, student roster, lesson publish controls, and writing review.
+- `packages/shared` - Supabase client setup, data access functions, shared types, grading, and teacher HTML sanitization.
+- `packages/ui` - reusable Button, Card, Badge, Input, Textarea, Select, Table, EmptyState, LoadingSkeleton, StatCard, ProgressBar, and AppShell components.
+
+The current schema is adapted rather than replaced:
+
+- `lessons` maps to published lesson/course units.
+- `tasks` maps to tests/tasks.
+- `submissions` maps to attempts and writing submissions.
+- `students` maps to student profiles.
+- A future migration can add `tests`, `test_sections`, `questions`, `answer_options`, `test_attempts`, `student_answers`, and `teacher_feedback` without destroying current data.
 
 ## P0 Findings
 

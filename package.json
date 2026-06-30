@@ -1,0 +1,23 @@
+{
+  "name": "ielts-pro-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:student": "cd apps/student-web && node ../../node_modules/next/dist/bin/next dev --port 3000",
+    "dev:admin": "cd apps/admin-web && node ../../node_modules/next/dist/bin/next dev --port 3001",
+    "build": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/student-web && node ../../node_modules/next/dist/bin/next build --webpack && cd ../admin-web && node ../../node_modules/next/dist/bin/next build --webpack",
+    "build:student": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/student-web && node ../../node_modules/next/dist/bin/next build --webpack",
+    "build:admin": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/admin-web && node ../../node_modules/next/dist/bin/next build --webpack",
+    "typecheck": "npm --workspaces run typecheck --if-present",
+    "lint": "npm --workspaces run lint --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "baseline-browser-mapping": "^2.10.40"
+  }
+}
