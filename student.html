@@ -95,12 +95,13 @@ let S = {
 // ── STUDENT DATA ──
 async function loadStudentData() {
   const [lessons, tasks, subs] = await Promise.all([
-    get('lessons?order=order.asc'),
+    get('lessons?published=eq.true&order=order.asc'),
     get('tasks?order=order.asc'),
     get(`submissions?student_id=eq.${S.student.id}`)
   ]);
   S.lessons = lessons;
-  S.tasks = tasks;
+  const publishedLessonIds = new Set(lessons.map(l=>l.id));
+  S.tasks = tasks.filter(t=>publishedLessonIds.has(t.lesson_id));
   S.submissions = subs;
 }
 
@@ -167,12 +168,12 @@ function showDashboard() {
     const ld = S.submissions.filter(s=>lt.find(t=>t.id===s.task_id)).length;
     const lpct = lt.length>0 ? Math.round(ld/lt.length*100) : 0;
     const allDone = lt.length>0 && ld>=lt.length;
-    return `<div class="lesson-card${lpct>0?' has-progress':''}" onclick="openLesson('${l.id}')">
+    return `<button type="button" class="lesson-card${lpct>0?' has-progress':''}" onclick="openLesson('${escapeAttr(l.id)}')">
       ${allDone?'<div class="completed-dot"></div>':''}
-      <h4>Lesson ${l.order||i+1}</h4>
+      <h4>${escapeHtml(l.title || `Lesson ${l.order||i+1}`)}</h4>
       <div class="task-count">${ld}/${lt.length} tasks completed</div>
       <div class="lesson-progress-bar"><div class="lesson-progress-fill" style="width:${lpct}%"></div></div>
-    </div>`;
+    </button>`;
   }).join('');
 }
 
@@ -196,12 +197,12 @@ function openLesson(id) {
     const count = lt.filter(t=>t.skill===m.key).length;
     if(count===0) return ''; // hide modes with no tasks
     const done = S.submissions.filter(s=>{ const t=lt.find(t=>t.id===s.task_id&&t.skill===m.key); return !!t; }).length;
-    return `<div class="mode-card ${m.color}" onclick="selectMode('${m.key}')">
+    return `<button type="button" class="mode-card ${m.color}" onclick="selectMode('${m.key}')">
       <div class="mode-count">${done}/${count}</div>
       <div class="mode-icon">${m.icon}</div>
       <div class="mode-name">${m.label}</div>
       <div class="mode-desc">${m.desc}</div>
-    </div>`;
+    </button>`;
   }).join('');
 
   document.getElementById('mode-tasks-area').innerHTML = '';
@@ -219,14 +220,14 @@ function selectMode(mode) {
 
   lt.forEach((t,i)=>{
     const done = S.submissions.find(s=>s.task_id===t.id);
-    html += `<div class="task-list-item${done?' completed':''}" onclick="openTask('${t.id}')">
+    html += `<button type="button" class="task-list-item${done?' completed':''}" onclick="openTask('${escapeAttr(t.id)}')">
       <div class="task-num">${done?'✓':i+1}</div>
       <div class="task-item-body">
-        <div class="task-item-title">${t.title}</div>
-        <div class="task-item-type">${t.task_type||mode}</div>
+        <div class="task-item-title">${escapeHtml(t.title)}</div>
+        <div class="task-item-type">${escapeHtml(t.task_type||mode)}</div>
       </div>
       <div class="task-item-arrow">›</div>
-    </div>`;
+    </button>`;
   });
   html += '</div>';
   document.getElementById('mode-tasks-area').innerHTML = html;
@@ -329,16 +330,16 @@ function renderWritingTask(task, sub, area) {
     <div class="writing-split">
       <div class="writing-prompt">
         <h3>✍️ Writing Prompt</h3>
-        <p>${prompt}</p>
-        ${imageUrl?`<img src="${imageUrl}" style="max-width:100%;border-radius:10px;margin-top:14px;display:block"/>`:''}
+        <p>${escapeHtml(prompt)}</p>
+        ${imageUrl?`<img src="${escapeAttr(imageUrl)}" alt="" loading="lazy" style="max-width:100%;border-radius:10px;margin-top:14px;display:block"/>`:''}
       </div>
       <div class="writing-area">
         <label>Your Response (minimum ${minWords} words)</label>
-        <textarea id="writing-ta" ${isSubmitted?'disabled':''} oninput="updateWC()" placeholder="Write your answer here...">${isSubmitted?sub.answer:''}</textarea>
+        <textarea id="writing-ta" ${isSubmitted?'disabled':''} oninput="updateWC()" placeholder="Write your answer here…">${isSubmitted?escapeHtml(sub.answer):''}</textarea>
         <div class="word-count" id="wc-display">${isSubmitted?countWords(sub.answer)+' words':'0 words'}</div>
       </div>
     </div>
-    ${isSubmitted&&sub.feedback?`<div class="feedback-card"><h4>📝 Teacher Feedback</h4><p>${sub.feedback}</p></div>`:''}
+    ${isSubmitted&&sub.feedback?`<div class="feedback-card"><h4>📝 Teacher Feedback</h4><p>${escapeHtml(sub.feedback)}</p></div>`:''}
     <div class="task-footer">
       <div>${isSubmitted?`${sub.score!==null?`<span class="score-badge">Band ${sub.score}</span>`:''}  <span class="submitted-badge">✓ Submitted</span>`:''}</div>
       ${!isSubmitted?`<button class="btn btn-success" onclick="submitWritingTask()">Submit Response</button>`:''}

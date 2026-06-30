@@ -182,9 +182,9 @@ function renderGroupsTable(){
   const el=document.getElementById('groups-table');
   if(!S.groups.length){el.innerHTML='<div class="empty-state"><div class="icon">👥</div><h3>No groups yet</h3></div>';return;}
   el.innerHTML=`<div class="data-table"><table><tr><th>Group Name</th><th>Students</th><th>Actions</th></tr>
-    ${S.groups.map(g=>`<tr><td><strong>${g.name}</strong></td><td>${S.students.filter(s=>s.group_id===g.id).length}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="openModal('group','${g.id}')">Edit</button>
-    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('groups','${g.id}')">Delete</button></td></tr>`).join('')}
+    ${S.groups.map(g=>`<tr><td><strong>${escapeHtml(g.name)}</strong></td><td>${S.students.filter(s=>s.group_id===g.id).length}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openModal('group','${escapeAttr(g.id)}')">Edit</button>
+    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('groups','${escapeAttr(g.id)}')">Delete</button></td></tr>`).join('')}
   </table></div>`;
 }
 
@@ -192,9 +192,9 @@ function renderStudentsTable(){
   const el=document.getElementById('students-table');
   if(!S.students.length){el.innerHTML='<div class="empty-state"><div class="icon">🎓</div><h3>No students yet</h3></div>';return;}
   el.innerHTML=`<div class="data-table"><table><tr><th>Name</th><th>Student ID</th><th>Group</th><th>Actions</th></tr>
-    ${S.students.map(s=>`<tr><td><strong>${s.name}</strong></td><td><code>${s.student_code}</code></td><td>${s.groups?.name||'—'}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="openModal('student','${s.id}')">Edit</button>
-    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('students','${s.id}')">Delete</button></td></tr>`).join('')}
+    ${S.students.map(s=>`<tr><td><strong>${escapeHtml(s.name)}</strong></td><td><code>${escapeHtml(s.student_code)}</code></td><td>${escapeHtml(s.groups?.name||'—')}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openModal('student','${escapeAttr(s.id)}')">Edit</button>
+    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('students','${escapeAttr(s.id)}')">Delete</button></td></tr>`).join('')}
   </table></div>`;
 }
 
@@ -202,10 +202,10 @@ function renderLessonsTable(){
   const el=document.getElementById('lessons-table');
   if(!S.adminLessons.length){el.innerHTML='<div class="empty-state"><div class="icon">📋</div><h3>No lessons yet</h3></div>';return;}
   el.innerHTML=`<div class="data-table"><table><tr><th>Lesson</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr>
-    ${S.adminLessons.map(l=>`<tr><td><strong>${l.title}</strong></td><td style="color:var(--muted);font-size:13px">${l.description||''}</td><td>${l.order}</td>
+    ${S.adminLessons.map(l=>`<tr><td><strong>${escapeHtml(l.title)}</strong></td><td style="color:var(--muted);font-size:13px">${escapeHtml(l.description||'')}</td><td>${escapeHtml(l.order)}</td>
     <td><span class="skill-pill" style="background:${l.published?'#dcfce7':'#fef3c7'};color:${l.published?'#15803d':'#b45309'}">${l.published?'Published':'Draft'}</span></td>
-    <td><button class="btn btn-outline btn-sm" onclick="openModal('lesson','${l.id}')">Edit</button>
-    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('lessons','${l.id}')">Delete</button></td></tr>`).join('')}
+    <td><button class="btn btn-outline btn-sm" onclick="openModal('lesson','${escapeAttr(l.id)}')">Edit</button>
+    <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('lessons','${escapeAttr(l.id)}')">Delete</button></td></tr>`).join('')}
   </table></div>`;
 }
 
@@ -223,15 +223,15 @@ function renderTasksTable(){
       const idx=siblings.findIndex(s=>s.id===t.id);
       const upId = idx>0 ? siblings[idx-1].id : null;
       const downId = idx<siblings.length-1 ? siblings[idx+1].id : null;
-      return `<tr><td><strong>${t.title}</strong></td><td style="font-size:13px;color:var(--muted)">${l?.title||'?'}</td>
-      <td><span class="skill-pill pill-${t.skill}">${t.skill}</span></td>
-      <td style="font-size:13px">${t.task_type||'—'}</td>
+      return `<tr><td><strong>${escapeHtml(t.title)}</strong></td><td style="font-size:13px;color:var(--muted)">${escapeHtml(l?.title||'?')}</td>
+      <td><span class="skill-pill pill-${escapeAttr(t.skill)}">${escapeHtml(t.skill)}</span></td>
+      <td style="font-size:13px">${escapeHtml(t.task_type||'—')}</td>
       <td>
-        <button class="btn btn-outline btn-sm" ${upId?'':'disabled style="opacity:.3"'} onclick="moveTask('${t.id}','${upId}')" title="Move up">↑</button>
-        <button class="btn btn-outline btn-sm" ${downId?'':'disabled style="opacity:.3"'} onclick="moveTask('${downId}','${t.id}')" title="Move down">↓</button>
+        <button class="btn btn-outline btn-sm" ${upId?'':'disabled style="opacity:.3"'} onclick="moveTask('${escapeAttr(t.id)}','${escapeAttr(upId)}')" title="Move up">↑</button>
+        <button class="btn btn-outline btn-sm" ${downId?'':'disabled style="opacity:.3"'} onclick="moveTask('${escapeAttr(downId)}','${escapeAttr(t.id)}')" title="Move down">↓</button>
       </td>
-      <td><button class="btn btn-outline btn-sm" onclick="openModal('task','${t.id}')">Edit</button>
-      <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('tasks','${t.id}')">Delete</button></td></tr>`;
+      <td><button class="btn btn-outline btn-sm" onclick="openModal('task','${escapeAttr(t.id)}')">Edit</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteItem('tasks','${escapeAttr(t.id)}')">Delete</button></td></tr>`;
     }).join('')}
   </table></div>`;
 }
@@ -277,12 +277,12 @@ function renderSubmissionsTable(){
         scoreCell = (s.score!==null&&s.score!==undefined) ? `<span class="score-badge">Band ${s.score}</span>` : '<span style="color:var(--muted)">—</span>';
       }
       return `<tr>
-        <td><strong>${s.students?.name||'?'}</strong><br><small style="color:var(--muted)">${s.students?.student_code||''}</small></td>
-        <td><span class="skill-pill pill-${skill}">${skill}</span></td>
-        <td>${s.tasks?.title||'?'}<br><small style="color:var(--muted)">${s.tasks?.lessons?.title||''}</small></td>
+        <td><strong>${escapeHtml(s.students?.name||'?')}</strong><br><small style="color:var(--muted)">${escapeHtml(s.students?.student_code||'')}</small></td>
+        <td><span class="skill-pill pill-${escapeAttr(skill)}">${escapeHtml(skill)}</span></td>
+        <td>${escapeHtml(s.tasks?.title||'?')}<br><small style="color:var(--muted)">${escapeHtml(s.tasks?.lessons?.title||'')}</small></td>
         <td style="font-size:13px">${new Date(s.submitted_at).toLocaleDateString()}</td>
         <td>${scoreCell}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openSubmission('${s.id}')">${skill==='writing'?'Review':'View'}</button></td>
+        <td><button class="btn btn-outline btn-sm" onclick="openSubmission('${escapeAttr(s.id)}')">${skill==='writing'?'Review':'View'}</button></td>
       </tr>`;
     }).join('')}
   </table></div>`;
@@ -333,11 +333,11 @@ function renderTaskSkillFields(skill, t){
       <div class="form-group">
         <label>🎧 Audio file</label>
         <input type="file" id="m-audiofile" accept="audio/*" onchange="onAudioFileSelected(this)"/>
-        <div class="hint-text" id="m-audiofile-status">${data.audio_url?`Currently set: <a href="${data.audio_url}" target="_blank">listen to current audio</a>. Choose a new file to replace it.`:'Upload the listening recording students will hear (mp3, wav, m4a...).'}</div>
-        <input type="hidden" id="m-audiourl" value="${data.audio_url||''}"/>
+        <div class="hint-text" id="m-audiofile-status">${data.audio_url?`Currently set: <a href="${escapeAttr(data.audio_url)}" target="_blank" rel="noopener">listen to current audio</a>. Choose a new file to replace it.`:'Upload the listening recording students will hear (mp3, wav, m4a...).'}</div>
+        <input type="hidden" id="m-audiourl" value="${escapeAttr(data.audio_url||'')}"/>
       </div>
       <div class="form-group"><label>Instructions shown above the player (optional)</label>
-        <input id="m-instructions" value="${data.instructions||''}" placeholder="e.g. Listen carefully and fill in the gaps below."/>
+        <input id="m-instructions" value="${escapeAttr(data.instructions||'')}" placeholder="e.g. Listen carefully and fill in the gaps below."/>
       </div>
       <div id="question-builder"></div>`;
     TASK_QUESTIONS_SKILL = 'listening';
@@ -347,11 +347,11 @@ function renderTaskSkillFields(skill, t){
       <div class="form-group">
         <label>🖼️ Image (optional — chart, graph, diagram, map)</label>
         <input type="file" id="m-imagefile" accept="image/*" onchange="onImageFileSelected(this)"/>
-        <div class="hint-text" id="m-imagefile-status">${data.image_url?`Currently set: <img src="${data.image_url}" style="max-width:100%;max-height:120px;display:block;margin-top:8px;border-radius:8px"/>`:'Students will see this above the writing prompt — typical for Writing Task 1.'}</div>
-        <input type="hidden" id="m-imageurl" value="${data.image_url||''}"/>
+        <div class="hint-text" id="m-imagefile-status">${data.image_url?`Currently set: <img src="${escapeAttr(data.image_url)}" alt="" loading="lazy" style="max-width:100%;max-height:120px;display:block;margin-top:8px;border-radius:8px"/>`:'Students will see this above the writing prompt — typical for Writing Task 1.'}</div>
+        <input type="hidden" id="m-imageurl" value="${escapeAttr(data.image_url||'')}"/>
       </div>
       <div class="form-group"><label>Instructions / Prompt</label>
-        <textarea id="m-prompt" style="min-height:120px">${data.prompt||''}</textarea>
+        <textarea id="m-prompt" style="min-height:120px">${escapeHtml(data.prompt||'')}</textarea>
       </div>
       <div class="form-group"><label>Minimum word count</label>
         <input type="number" id="m-minwords" value="${data.min_words||150}"/>
@@ -888,23 +888,23 @@ function openModal(type, editId=null){
   if(type==='group'){
     const g=editId?S.groups.find(x=>x.id===editId):null;
     title.textContent=editId?'Edit Group':'Add Group';
-    body.innerHTML=`<div class="form-group"><label>Group Name</label><input id="m-name" value="${g?.name||''}"/></div>`;
+    body.innerHTML=`<div class="form-group"><label>Group Name</label><input id="m-name" value="${escapeAttr(g?.name||'')}"/></div>`;
   } else if(type==='student'){
     const s=editId?S.students.find(x=>x.id===editId):null;
-    const gOpts=S.groups.map(g=>`<option value="${g.id}" ${s?.group_id===g.id?'selected':''}>${g.name}</option>`).join('');
+    const gOpts=S.groups.map(g=>`<option value="${escapeAttr(g.id)}" ${s?.group_id===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('');
     title.textContent=editId?'Edit Student':'Add Student';
-    body.innerHTML=`<div class="form-group"><label>Full Name</label><input id="m-name" value="${s?.name||''}"/></div>
-      <div class="form-group"><label>Student ID</label><input id="m-code" value="${s?.student_code||''}"/></div>
+    body.innerHTML=`<div class="form-group"><label>Full Name</label><input id="m-name" value="${escapeAttr(s?.name||'')}"/></div>
+      <div class="form-group"><label>Student ID</label><input id="m-code" value="${escapeAttr(s?.student_code||'')}"/></div>
       <div class="form-group"><label>Group</label><select id="m-group"><option value="">No group</option>${gOpts}</select></div>`;
   } else if(type==='lesson'){
     const l=editId?S.adminLessons.find(x=>x.id===editId):null;
     title.textContent=editId?'Edit Lesson':'Add Lesson';
     const lSkill = l?.skill || 'reading';
-    body.innerHTML=`<div class="form-group"><label>Title</label><input id="m-title" value="${l?.title||''}"/></div>
+    body.innerHTML=`<div class="form-group"><label>Title</label><input id="m-title" value="${escapeAttr(l?.title||'')}"/></div>
       <div class="form-group"><label>Skill</label><select id="m-lesson-skill">
         ${['reading','listening','writing','vocabulary'].map(sk=>`<option value="${sk}" ${lSkill===sk?'selected':''}>${sk}</option>`).join('')}
       </select></div>
-      <div class="form-group"><label>Description</label><input id="m-desc" value="${l?.description||''}"/></div>
+      <div class="form-group"><label>Description</label><input id="m-desc" value="${escapeAttr(l?.description||'')}"/></div>
       <div class="form-group"><label>Order (number)</label><input type="number" id="m-order" value="${l?.order||1}"/></div>
       <div class="form-group" style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="m-published" style="width:auto" ${(l?l.published:true)?'checked':''}/>
@@ -912,10 +912,10 @@ function openModal(type, editId=null){
       </div>`;
   } else if(type==='task'){
     const t=editId?S.adminTasks.find(x=>x.id===editId):null;
-    const lOpts=S.adminLessons.map(l=>`<option value="${l.id}" ${t?.lesson_id===l.id?'selected':''}>${l.title}</option>`).join('');
+    const lOpts=S.adminLessons.map(l=>`<option value="${escapeAttr(l.id)}" ${t?.lesson_id===l.id?'selected':''}>${escapeHtml(l.title)}</option>`).join('');
     title.textContent=editId?'Edit Task':'Add Task';
     const skill = t?.skill || 'reading';
-    body.innerHTML=`<div class="form-group"><label>Title</label><input id="m-title" value="${t?.title||''}"/></div>
+    body.innerHTML=`<div class="form-group"><label>Title</label><input id="m-title" value="${escapeAttr(t?.title||'')}"/></div>
       <div class="form-group"><label>Lesson</label><select id="m-lesson">${lOpts}</select></div>
       <div class="form-group"><label>Skill</label><select id="m-skill" onchange="onTaskSkillChange()">
         ${['reading','listening','writing','vocabulary'].map(sk=>`<option value="${sk}" ${skill===sk?'selected':''}>${sk}</option>`).join('')}
@@ -1025,7 +1025,7 @@ async function deleteItem(table,id){
 function openSubmission(id){
   const sub=S.adminSubs.find(s=>s.id===id); S.currentSubId=id;
   const skill = sub.tasks?.skill;
-  document.getElementById('sub-modal-title').textContent=`${skill==='writing'?'Review':'View'}: ${sub.students?.name}`;
+  document.getElementById('sub-modal-title').textContent=`${skill==='writing'?'Review':'View'}: ${sub.students?.name||'Student'}`;
 
   if(skill==='reading' || skill==='listening'){
     const task = S.adminTasks.find(t=>t.id===sub.task_id);
@@ -1044,10 +1044,10 @@ function openSubmission(id){
           const ok = fuzzy
             ? String(given).toLowerCase().trim()===correctAns.toLowerCase().trim()
             : given===correctAns;
-          return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-            <span>${qi+1}. ${it.label||('Gap '+(ii+1))}</span>
-            <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+correctAns+')'}</span>
-          </div>`;
+	          return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+	            <span>${qi+1}. ${escapeHtml(it.label||('Gap '+(ii+1)))}</span>
+	            <span style="color:${ok?'#15803d':'#dc2626'}">${escapeHtml(given)} ${ok?'✓':'(answer: '+escapeHtml(correctAns)+')'}</span>
+	          </div>`;
         }).join('');
       }
       if(q.type==='mcq_multi'){
@@ -1055,21 +1055,21 @@ function openSubmission(id){
         const correctArr = q.answer||[];
         const ok = correctArr.length===savedArr.length && correctArr.every(l=>savedArr.includes(l));
         return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <span>${qi+1}. ${q.question}</span>
-          <span style="color:${ok?'#15803d':'#dc2626'}">${savedArr.join(', ')||'(no answer)'} ${ok?'✓':'(answer: '+correctArr.join(', ')+')'}</span>
-        </div>`;
+	          <span>${qi+1}. ${escapeHtml(q.question)}</span>
+	          <span style="color:${ok?'#15803d':'#dc2626'}">${escapeHtml(savedArr.join(', ')||'(no answer)')} ${ok?'✓':'(answer: '+escapeHtml(correctArr.join(', '))+')'}</span>
+	        </div>`;
       }
       const given = savedAnswers[qi]!==undefined?savedAnswers[qi]:'(no answer)';
       const ok = q.type==='gap_fill'||q.type==='short_answer'
         ? String(given).toLowerCase().trim()===(q.answer||'').toLowerCase().trim()
         : given===q.answer;      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <span>${qi+1}. ${q.question}</span>
-        <span style="color:${ok?'#15803d':'#dc2626'}">${given} ${ok?'✓':'(answer: '+q.answer+')'}</span>
-      </div>`;
+	        <span>${qi+1}. ${escapeHtml(q.question)}</span>
+	        <span style="color:${ok?'#15803d':'#dc2626'}">${escapeHtml(given)} ${ok?'✓':'(answer: '+escapeHtml(q.answer)+')'}</span>
+	      </div>`;
     }).join('');
 
     document.getElementById('sub-modal-body').innerHTML=`
-      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${sub.tasks?.title}</strong></p>
+	      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${escapeHtml(sub.tasks?.title)}</strong></p>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</p>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-bottom:16px;text-align:center">
         <span style="font-size:22px;font-weight:700;color:#15803d">${sub.score}/${sub.total}</span>
@@ -1083,13 +1083,13 @@ function openSubmission(id){
 
   document.getElementById('sub-save-btn').style.display='';
   document.getElementById('sub-modal-body').innerHTML=`
-    <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${sub.tasks?.title}</strong></p>
+	    <p style="font-size:13px;color:var(--muted);margin-bottom:4px">Task: <strong>${escapeHtml(sub.tasks?.title)}</strong></p>
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Submitted: ${new Date(sub.submitted_at).toLocaleString()}</p>
-    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:16px;font-size:14px;line-height:1.8;white-space:pre-wrap;margin-bottom:16px">${sub.answer}</div>
+	    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:16px;font-size:14px;line-height:1.8;white-space:pre-wrap;margin-bottom:16px">${escapeHtml(sub.answer)}</div>
     <div class="form-group"><label style="color:var(--text);font-size:13px;font-weight:600;display:block;margin-bottom:6px">Band Score (1–9)</label>
-      <input type="number" id="score-input" min="1" max="9" step="0.5" value="${sub.score||''}" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px;font-family:Inter,sans-serif;width:120px;outline:none"/></div>
+	      <input type="number" id="score-input" min="1" max="9" step="0.5" value="${escapeAttr(sub.score||'')}" style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px;font-family:Inter,sans-serif;width:120px;outline:none"/></div>
     <div class="form-group"><label style="color:var(--text);font-size:13px;font-weight:600;display:block;margin-bottom:6px">Feedback</label>
-      <textarea id="feedback-input" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:Inter,sans-serif;width:100%;min-height:100px;outline:none;resize:vertical">${sub.feedback||''}</textarea></div>`;
+	      <textarea id="feedback-input" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:Inter,sans-serif;width:100%;min-height:100px;outline:none;resize:vertical">${escapeHtml(sub.feedback||'')}</textarea></div>`;
   document.getElementById('sub-modal-overlay').classList.add('open');
 }
 async function saveScore(){

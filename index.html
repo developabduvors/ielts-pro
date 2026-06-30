@@ -43,7 +43,7 @@ async function studentLogin() {
   const code=document.getElementById('input-code').value.trim();
   if(!name||!code) return toast('Enter your name and ID','error');
   try {
-    const rows = await get(`students?name=ilike.${encodeURIComponent(name)}&student_code=eq.${code}&select=*,groups(name)`);
+    const rows = await get(`students?name=ilike.${encodeFilterValue(name)}&student_code=eq.${encodeFilterValue(code)}&select=*,groups(name)`);
     if(!rows.length){ document.getElementById('login-error').classList.add('show'); return; }
     document.getElementById('login-error').classList.remove('show');
     setStudentSession(rows[0]);

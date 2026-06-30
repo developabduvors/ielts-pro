@@ -28,6 +28,21 @@ const post = (p,b) => api(p, {method:'POST', body:JSON.stringify(b)});
 const patch = (p,b) => api(p, {method:'PATCH', body:JSON.stringify(b), prefer:'return=representation'});
 const del = p => api(p, {method:'DELETE'});
 
+// ── OUTPUT ENCODING ──
+// Most screens render server data with template strings. Keep all user/data
+// values escaped unless a field is intentionally trusted rich lesson content.
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function escapeAttr(value){ return escapeHtml(value); }
+function encodeFilterValue(value){ return encodeURIComponent(String(value ?? '')); }
+function isPublishedLesson(lesson){ return lesson && lesson.published !== false; }
+
 // ── SUPABASE AUTH (admin login) ──
 async function authApi(path, body) {
   const r = await fetch(`${SUPA_URL}/auth/v1/${path}`, {
@@ -44,6 +59,8 @@ async function authApi(path, body) {
 function toast(msg, type='') {
   let t = document.getElementById('toast');
   if(!t){ t=document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.setAttribute('role','status');
+  t.setAttribute('aria-live','polite');
   t.textContent=msg; t.className='toast show '+type;
   setTimeout(()=>t.classList.remove('show'),3000);
 }

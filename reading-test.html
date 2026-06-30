@@ -467,11 +467,18 @@ window.addEventListener('load', async ()=>{
 
   try{
     const [tasks, subs] = await Promise.all([
-      get(`tasks?id=eq.${taskId}`),
-      get(`submissions?student_id=eq.${S.student.id}&task_id=eq.${taskId}`)
+      get(`tasks?id=eq.${encodeFilterValue(taskId)}`),
+      get(`submissions?student_id=eq.${encodeFilterValue(S.student.id)}&task_id=eq.${encodeFilterValue(taskId)}`)
     ]);
     if(!tasks.length){ document.getElementById('rft-passage-panel').innerHTML='<div class="empty-state"><div class="icon">📭</div><h3>Task not found</h3></div>'; return; }
     S.task = tasks[0];
+    const lessons = await get(`lessons?id=eq.${encodeFilterValue(S.task.lesson_id)}&published=eq.true`);
+    S.lesson = lessons[0]||null;
+    if(!S.lesson){
+      document.getElementById('rft-passage-panel').innerHTML='<div class="empty-state"><div class="icon">🔒</div><h3>This test is not available</h3></div>';
+      document.getElementById('rft-submit-btn').style.display='none';
+      return;
+    }
     S.currentSubmission = subs[0]||null;
 
     let data={}; try{ data=JSON.parse(S.task.content); }catch(e){ data={passages:[],questions:[]}; }

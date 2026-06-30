@@ -211,15 +211,16 @@ window.addEventListener('load', async ()=>{
 
   try {
     const [tasks, subs] = await Promise.all([
-      get(`tasks?id=eq.${taskId}`),
-      get(`submissions?student_id=eq.${S.student.id}&task_id=eq.${taskId}`)
+      get(`tasks?id=eq.${encodeFilterValue(taskId)}`),
+      get(`submissions?student_id=eq.${encodeFilterValue(S.student.id)}&task_id=eq.${encodeFilterValue(taskId)}`)
     ]);
     if(!tasks.length){ area.innerHTML='<div class="empty-state"><div class="icon">📭</div><h3>Task not found</h3></div>'; return; }
     S.task = tasks[0];
     S.currentSubmission = subs[0]||null;
 
-    const lessons = await get(`lessons?id=eq.${S.task.lesson_id}`);
+    const lessons = await get(`lessons?id=eq.${encodeFilterValue(S.task.lesson_id)}&published=eq.true`);
     S.lesson = lessons[0]||null;
+    if(!S.lesson){ area.innerHTML='<div class="empty-state"><div class="icon">🔒</div><h3>This task is not available</h3></div>'; return; }
     document.getElementById('bc-lesson').textContent = S.lesson?(S.lesson.title||`Lesson ${S.lesson.order}`):'Lesson';
     document.getElementById('bc-task').textContent = S.task.title;
 
