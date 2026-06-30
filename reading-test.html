@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IELTS Pro — Reading</title>
+<link rel="stylesheet" href="shared.css"/>
+</head>
+<body>
+
+<div id="screen-student" class="screen active">
+  <nav class="app-nav">
+    <div class="nav-logo">IELTS <span>Pro</span></div>
+    <div class="nav-right">
+      <div class="nav-user">Logged in as <strong id="nav-student-name"></strong></div>
+      <button class="btn-nav-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="content">
+
+    <!-- VIEW: TASK -->
+    <div id="view-task">
+      <div class="breadcrumb" style="margin-bottom:20px">
+        <a onclick="goBackToLesson()" id="bc-lesson">Lesson</a>
+        <span>›</span>
+        <span id="bc-task"></span>
+      </div>
+      <div id="view-task-inner"></div>
+    </div>
+
+    <!-- VIEW: RESULTS (shown right after submitting) -->
+    <div id="view-results" style="display:none">
+      <div style="max-width:560px;margin:40px auto;text-align:center">
+        <div class="reading-task-card" style="padding:40px 32px">
+          <div style="font-size:44px;margin-bottom:10px">📖</div>
+          <h2 style="font-family:'Sora',sans-serif;color:var(--navy);margin-bottom:6px">Reading Test Complete</h2>
+          <p style="color:var(--muted);font-size:14px;margin-bottom:24px" id="results-task-title"></p>
+          <div style="font-family:'Sora',sans-serif;font-size:3rem;font-weight:800;color:var(--green)" id="results-score"></div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:28px">correct, auto-graded</div>
+          <button class="btn btn-primary" style="width:auto;padding:13px 32px" onclick="goBackToLesson()">Back to Lessons</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared.js"></script>
+<script>
+let S = { student:null, task:null, lesson:null, currentSubmission:null };
+
+function goBackToLesson(){
+  const lessonId = S.task ? S.task.lesson_id : '';
+  window.location.href = `student.html?lesson=${lessonId}&mode=reading`;
+}
+
+// ── READING ──
+function renderReadingTask(task, sub, area) {
+  // Parse task content. New tasks use passage_html (rendered inline);
+  // passage_url is kept as a fallback for any tasks created before this.
+  let data = {};
+  try { data = JSON.parse(task.content); } catch(e) { data = { questions: [] }; }
+
+  const passageHtml = data.passage_html || null;
+  const passageUrl = data.passage_url || null;
+  const questions = data.questions || [];
+
+  // parse saved answers
+  let savedAnswers = {};
+  if(sub && sub.answer) { try { savedAnswers = JSON.parse(sub.answer); } catch(e){} }
+  const isSubmitted = !!sub;
+
+  let qHtml = '';
+  questions.forEach((q,qi)=>{
+    const saved = savedAnswers[qi] !== undefined ? savedAnswers[qi] : '';
+    if(q.type==='gap_fill') {
+      qHtml += `<div class="q-item">
+        <div class="q-num">${qi+1}</div>
+        <div style="flex:1">
+          <div class="q-label" style="margin-bottom:6px">${q.question||''}</div>
+          <input class="q-input${isSubmitted?(saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim()?' correct':' wrong'):''}"
+            id="qa_${qi}" value="${saved}" ${isSubmitted?'disabled':''} placeholder="Your answer"/>
+          ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+        </div>
+      </div>`;
+    } else if(q.type==='tfng' || q.type==='ynng') {
+      const opts = q.type==='ynng' ? ['Yes','No','Not Given'] : ['True','False','Not Given'];
+      qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div class="q-label">${q.question||''}</div>
+        </div>
+        <div class="tfng-group" style="margin-left:34px">
+          ${opts.map(o=>{
+            const isSelected = saved===o;
+            const correct = q.answer||'';
+            let cls = isSelected ? 'selected' : '';
+            if(isSubmitted && isSelected) cls = saved===correct?'correct':'wrong';
+            if(isSubmitted && o===correct && !isSelected) cls='correct';
+            return `<button class="tfng-btn ${cls}" id="qa_${qi}_${o}" ${isSubmitted?'disabled':''} onclick="selectTFNG(${qi},'${o}')">${o}</button>`;
+          }).join('')}
+        </div>
+        ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-left:34px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+      </div>`;
+    } else if(q.type==='mcq') {
+      const opts = q.options||[];
+      qHtml += `<div style="margin-bottom:16px">
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">
+          <div class="q-num">${qi+1}</div>
+          <div class="q-label">${q.question||''}</div>
+        </div>
+        <div style="margin-left:34px">
+          ${opts.map((o,oi)=>{
+            const letter=String.fromCharCode(65+oi);
+            let cls='';
+            if(isSubmitted){ if(saved===letter) cls=saved===q.answer?'correct':'wrong'; if(letter===q.answer) cls='correct'; }
+            else if(saved===letter) cls='selected';
+            return `<div class="mcq-option ${cls}" id="qa_${qi}_${letter}" onclick="selectMCQ(${qi},'${letter}')" ${isSubmitted?'style="cursor:default"':''}>
+              <div class="mcq-letter">${letter}</div>
+              <div class="mcq-text">${o}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-left:34px;margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+      </div>`;
+    } else if(q.type==='short_answer') {
+      qHtml += `<div class="q-item">
+        <div class="q-num">${qi+1}</div>
+        <div style="flex:1">
+          <div class="q-label" style="margin-bottom:6px">${q.question||''}</div>
+          <input class="q-input${isSubmitted?(saved.toLowerCase().trim()===(q.answer||'').toLowerCase().trim()?' correct':' wrong'):''}"
+            id="qa_${qi}" value="${saved}" ${isSubmitted?'disabled':''} placeholder="Your answer"/>
+          ${isSubmitted?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Answer: <strong>${q.answer||''}</strong></div>`:''}
+        </div>
+      </div>`;
+    } else if(q.type==='matching') {
+      const items = q.items||[];
+      const matchOptions = q.matchOptions||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div class="q-label">${q.question||''}</div>
+        </div>
+        <div style="margin-left:34px;width:100%">
+          <div class="hint-text" style="margin-bottom:8px">Options: ${matchOptions.map((o,oi)=>`<strong>${oi+1}.</strong> ${o}`).join('&nbsp;&nbsp;')}</div>
+          ${items.map((it,ii)=>{
+            const itemSaved = savedMatch[ii]||'';
+            const isCorrect = itemSaved===it.answer;
+            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+              <span style="min-width:140px;font-size:13px">${it.label}</span>
+              <select id="qa_${qi}_${ii}" ${isSubmitted?'disabled':''} onchange="selectMatching(${qi},${ii},this.value)"
+                class="${isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):'q-input'}" style="flex:1;min-width:120px">
+                <option value="">Choose…</option>
+                ${matchOptions.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${itemSaved===o?'selected':''}>${o}</option>`).join('')}
+              </select>
+              ${isSubmitted?`<span style="font-size:12px;color:var(--muted)">✓ <strong>${it.answer}</strong></span>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    } else if(q.type==='sentence_endings') {
+      const items = q.items||[];
+      const matchOptions = q.matchOptions||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      const endingsHtml = matchOptions.map(function(o,oi){
+        return '<span style="display:inline-block;margin:3px 8px 3px 0"><strong>'+String.fromCharCode(65+oi)+'.</strong> '+o+'</span>';
+      }).join('');
+      const itemsHtml = items.map(function(it,ii){
+        const itemSaved = savedMatch[ii]||'';
+        const isCorrect = itemSaved===it.answer;
+        const optHtml = matchOptions.map(function(o,oi){
+          const l=String.fromCharCode(65+oi);
+          return '<option value="'+l+'" '+(itemSaved===l?'selected':'')+'>'+l+'</option>';
+        }).join('');
+        const ansHint = isSubmitted ? '<span style="font-size:12px;color:var(--muted)">&#10003; <strong>'+it.answer+'</strong></span>' : '';
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+          '<span style="font-size:13px;flex:1;min-width:160px"><strong>'+(ii+1)+'.</strong> '+it.label+'</span>'+
+          '<select id="qa_'+qi+'_'+ii+'" '+(isSubmitted?'disabled':'')+' onchange="selectMatching('+qi+','+ii+',this.value)"'+
+          ' class="'+(isSubmitted?(isCorrect?'q-input correct':'q-input wrong'):'q-input')+'" style="min-width:60px">'+
+          '<option value="">—</option>'+optHtml+'</select>'+ansHint+'</div>';
+      }).join('');
+      const instrText = q.question || ('Match the sentence beginnings (1\u2013'+items.length+') with the correct endings (A\u2013'+String.fromCharCode(64+matchOptions.length)+').');
+      qHtml += '<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">'+
+        '<div style="display:flex;gap:10px;align-items:flex-start">'+
+        '<div class="q-num">'+(qi+1)+'</div>'+
+        '<div class="q-label" style="font-weight:600">'+instrText+'</div></div>'+
+        '<div style="margin-left:34px;width:100%">'+
+        '<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px">'+
+        '<strong>Endings:</strong><br>'+endingsHtml+'</div>'+
+        itemsHtml+'</div></div>';
+    } else if(q.type==='diagram_label') {
+      const items = q.items||[];
+      const savedMatch = saved && typeof saved==='object' ? saved : {};
+      const imgHtml = q.image_url
+        ? '<img src="'+q.image_url+'" style="max-width:100%;border-radius:8px;margin-bottom:10px;display:block"/>'
+        : '<div style="background:#f8fafc;border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px">&#128202; Diagram image (add via image URL in question)</div>';
+      const labelItemsHtml = items.map(function(it,ii){
+        const itemSaved = savedMatch[ii]||'';
+        const isCorrect = (itemSaved||'').toLowerCase().trim()===(it.answer||'').toLowerCase().trim();
+        const ansHint = isSubmitted ? '<span style="font-size:12px;color:var(--muted)">&#10003; <strong>'+it.answer+'</strong></span>' : '';
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+          '<span style="font-size:13px;min-width:60px"><strong>'+(it.label||String(ii+1))+'</strong></span>'+
+          '<input id="qa_'+qi+'_'+ii+'" value="'+itemSaved+'" '+(isSubmitted?'disabled':'')+' placeholder="Write your answer"'+
+          ' class="q-input'+(isSubmitted?(isCorrect?' correct':' wrong'):'')+'" style="flex:1;min-width:120px"'+
+          ' onchange="selectDiagramLabel('+qi+','+ii+',this.value)"/>'+ansHint+'</div>';
+      }).join('');
+      qHtml += '<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:10px">'+
+        '<div style="display:flex;gap:10px;align-items:flex-start">'+
+        '<div class="q-num">'+(qi+1)+'</div>'+
+        '<div class="q-label">'+(q.question||'Label the diagram. Write NO MORE THAN TWO WORDS for each answer.')+'</div></div>'+
+        '<div style="margin-left:34px;width:100%">'+imgHtml+labelItemsHtml+'</div></div>';
+    } else if(q.type==='table_completion' || q.type==='summary_completion' || q.type==='flow_chart' || q.type==='note_completion') {
+      // Rendered as a structured gap-fill with context text containing {N} placeholders
+      const contextHtml = (q.context||'').replace(/\{(\d+)\}/g, function(m,n){
+        const idx = parseInt(n)-1;
+        const items = q.items||[];
+        const itemSaved = (saved && typeof saved==='object') ? (saved[idx]||'') : '';
+        const correctAns = items[idx]?.answer||'';
+        const isCorrect = (itemSaved||'').toLowerCase().trim()===correctAns.toLowerCase().trim();
+        const answerHint = isSubmitted ? '<span style="font-size:11px;color:var(--muted)">['+correctAns+']</span>' : '';
+        return '<input id="qa_'+qi+'_'+idx+'" value="'+itemSaved+'" '+(isSubmitted?'disabled':'')+
+          ' class="q-input'+(isSubmitted?(isCorrect?' correct':' wrong'):'')+'"'+
+          ' style="display:inline-block;width:120px;padding:4px 8px;margin:0 4px;vertical-align:middle"'+
+          ' placeholder="'+n+'"'+
+          ' onchange="selectTableItem('+qi+','+idx+',this.value)"/>'+answerHint;
+      });
+      const typeLabels = {table_completion:'Table Completion',summary_completion:'Summary Completion',flow_chart:'Flow-Chart Completion',note_completion:'Note Completion'};
+      const typeLabel = typeLabels[q.type]||q.type;
+      qHtml += `<div class="q-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="q-num">${qi+1}</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${typeLabel}</div>
+            <div class="q-label">${q.question||('Complete the '+typeLabel+' below. Write NO MORE THAN TWO WORDS.')}</div>
+          </div>
+        </div>
+        <div style="margin-left:34px;width:100%;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:14px;line-height:2.2">
+          ${contextHtml||'<span style="color:var(--muted)">No context text set yet. Admin can add it with {1}, {2} placeholders.</span>'}
+        </div>
+      </div>`;
+    }
+  }); // end questions.forEach
+
+  // score if submitted
+  let scoreHtml = '';
+  if(isSubmitted) {
+    const {correct, total} = gradeQuestions(questions, savedAnswers);
+    scoreHtml = `<div class="result-bar">
+      <div class="result-score">Score: <span class="correct">${correct}</span><span class="total">/${total}</span> correct</div>
+      <span class="submitted-badge">✓ Submitted</span>
+    </div>`;
+  }
+
+  area.innerHTML = `<div class="reading-task-card">
+    <div class="reading-split">
+      <div class="reading-passage-col">
+        ${passageHtml?passageHtml
+          :passageUrl?`<div class="reading-open-btn" onclick="window.open('${passageUrl}','_blank')">
+          <div class="reading-open-icon">📄</div>
+          <div class="reading-open-text"><h3>Open Reading Passage</h3><p>Click to open the passage in a new tab.</p></div>
+          <div class="reading-open-arrow">↗</div>
+        </div>`:'<div style="color:#166534;font-size:13px;">⚠ No passage added yet.</div>'}
+      </div>
+      <div class="reading-questions-col">
+        <h4>Questions — ${task.title}</h4>
+        ${qHtml||'<div class="empty-state"><div class="icon">📭</div><h3>No questions added yet</h3></div>'}
+      </div>
+    </div>
+    ${!isSubmitted && questions.length>0?`<div class="task-footer">
+      <div></div>
+      <button class="btn btn-success" onclick="submitReadingTask()">Submit Answers</button>
+    </div>`:''}
+    ${scoreHtml}
+  </div>`;
+
+  // restore TFNG/MCQ selections from savedAnswers (for non-submitted state)
+  if(!isSubmitted) {
+    questions.forEach((q,qi)=>{
+      const saved = savedAnswers[qi];
+      if(saved && (q.type==='tfng'||q.type==='ynng')) { const btn=document.getElementById(`qa_${qi}_${saved}`); if(btn) btn.classList.add(`selected-${saved.replace(/\s+/g,'_')}`); }
+      if(saved && q.type==='mcq') { const el=document.getElementById(`qa_${qi}_${saved}`); if(el) el.classList.add('selected'); }
+    });
+  }
+}
+
+function selectMatching(qi, ii, value){}
+function selectDiagramLabel(qi, ii, value){}
+function selectTableItem(qi, ii, value){}
+
+function selectTFNG(qi, val) {
+  if(S.currentSubmission) return;
+  const opts=['True','False','Not Given','Yes','No'];
+  opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b) b.classList.remove('selected'); });
+  const b=document.getElementById(`qa_${qi}_${val}`); if(b) b.classList.add('selected');
+}
+
+function selectMCQ(qi, letter) {
+  if(S.currentSubmission) return;
+  const task=S.task; let data={}; try{data=JSON.parse(task.content);}catch(e){}
+  const opts=data.questions[qi]?.options||[];
+  opts.forEach((_,oi)=>{ const l=String.fromCharCode(65+oi); const el=document.getElementById(`qa_${qi}_${l}`); if(el) el.classList.remove('selected'); });
+  const el=document.getElementById(`qa_${qi}_${letter}`); if(el) el.classList.add('selected');
+}
+
+async function submitReadingTask() {
+  const task=S.task; let data={}; try{data=JSON.parse(task.content);}catch(e){}
+  const questions=data.questions||[];
+  const answers={};
+  questions.forEach((q,qi)=>{
+    if(q.type==='gap_fill' || q.type==='short_answer'){ const inp=document.getElementById(`qa_${qi}`); answers[qi]=inp?inp.value.trim():''; }
+    else if(q.type==='tfng' || q.type==='ynng'){
+      const opts = q.type==='ynng' ? ['Yes','No','Not Given'] : ['True','False','Not Given'];
+      opts.forEach(o=>{ const b=document.getElementById(`qa_${qi}_${o}`); if(b&&b.classList.contains(`selected-${o.replace(/\s+/g,'_')}`)) answers[qi]=o; });
+    } else if(q.type==='mcq'){
+      const opts=q.options||[];
+      opts.forEach((_,oi)=>{ const l=String.fromCharCode(65+oi); const el=document.getElementById(`qa_${qi}_${l}`); if(el&&el.classList.contains('selected')) answers[qi]=l; });
+    } else if(q.type==='matching'||q.type==='sentence_endings'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((it,ii)=>{ const sel=document.getElementById(`qa_${qi}_${ii}`); if(sel) itemAnswers[ii]=sel.value; });
+      answers[qi]=itemAnswers;
+    } else if(q.type==='diagram_label'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((it,ii)=>{ const inp=document.getElementById(`qa_${qi}_${ii}`); if(inp) itemAnswers[ii]=inp.value.trim(); });
+      answers[qi]=itemAnswers;
+    } else if(q.type==='table_completion'||q.type==='summary_completion'||q.type==='flow_chart'||q.type==='note_completion'){
+      const items=q.items||[];
+      const itemAnswers={};
+      items.forEach((_,ii)=>{ const inp=document.getElementById(`qa_${qi}_${ii}`); if(inp) itemAnswers[ii]=inp.value.trim(); });
+      answers[qi]=itemAnswers;
+    }
+  });
+  const {correct, total} = gradeQuestions(questions, answers);
+  try {
+    await post('submissions',{student_id:S.student.id, task_id:task.id, answer:JSON.stringify(answers), score:correct, total});
+    showResults(task, correct, total);
+  } catch(e){ toast(e.message,'error'); }
+}
+
+function showResults(task, correct, total){
+  document.getElementById('results-task-title').textContent = task.title;
+  document.getElementById('results-score').innerHTML = `${correct}<span style="color:var(--muted);font-size:1.8rem">/${total}</span>`;
+  document.getElementById('view-task').style.display='none';
+  document.getElementById('view-results').style.display='block';
+}
+
+window.addEventListener('load', async ()=>{
+  S.student = requireStudentSession();
+  if(!S.student) return;
+  document.getElementById('nav-student-name').textContent = S.student.name;
+
+  const taskId = qparam('task');
+  if(!taskId){ window.location.href='student.html'; return; }
+
+  const area = document.getElementById('view-task-inner');
+  area.innerHTML = '<div class="loading-inline">Loading task...</div>';
+
+  try {
+    const [tasks, subs] = await Promise.all([
+      get(`tasks?id=eq.${taskId}`),
+      get(`submissions?student_id=eq.${S.student.id}&task_id=eq.${taskId}`)
+    ]);
+    if(!tasks.length){ area.innerHTML='<div class="empty-state"><div class="icon">📭</div><h3>Task not found</h3></div>'; return; }
+    S.task = tasks[0];
+    S.currentSubmission = subs[0]||null;
+
+    const lessons = await get(`lessons?id=eq.${S.task.lesson_id}`);
+    S.lesson = lessons[0]||null;
+    document.getElementById('bc-lesson').textContent = S.lesson?(S.lesson.title||`Lesson ${S.lesson.order}`):'Lesson';
+    document.getElementById('bc-task').textContent = S.task.title;
+
+    renderReadingTask(S.task, S.currentSubmission, area);
+  } catch(e){ toast(e.message,'error'); area.innerHTML = '<div class="empty-state"><div class="icon">⚠</div><h3>Could not load task</h3></div>'; }
+});
+</script>
+</body>
+</html>
