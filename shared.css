@@ -254,14 +254,70 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .tfng-btn.correct { background: #dcfce7 !important; border-color: var(--green) !important; color: #15803d !important; }
 .tfng-btn.wrong { background: #fef2f2 !important; border-color: var(--red) !important; color: #dc2626 !important; }
 .tfng-btn:disabled { cursor: default; }
-.mcq-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.2s; }
-.mcq-option:hover { border-color: var(--blue); background: #eff6ff; }
-.mcq-option.selected { border-color: var(--blue); background: #eff6ff; }
-.mcq-option.correct { border-color: var(--green) !important; background: #dcfce7 !important; }
-.mcq-option.wrong { border-color: var(--red) !important; background: #fef2f2 !important; }
-.mcq-letter { width: 26px; height: 26px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
-.mcq-text { font-size: 14px; color: var(--text); }
+/* IELTS-style Multiple Choice */
 
+.mcq-option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:8px 10px;
+    margin:2px 0;
+    border:none;
+    border-radius:6px;
+    background:transparent;
+    cursor:pointer;
+    transition:background .15s ease;
+}
+
+.mcq-option:hover{
+    background:#f8fafc;
+}
+
+.mcq-option.selected{
+    background:#eff6ff;
+}
+
+.mcq-option.correct{
+    background:#dcfce7;
+}
+
+.mcq-option.wrong{
+    background:#fef2f2;
+}
+
+.mcq-letter{
+    width:28px;
+    min-width:28px;
+    height:auto;
+    display:flex;
+    justify-content:center;
+    font-weight:700;
+    font-size:14px;
+    color:var(--navy);
+    background:none;
+    border:none;
+}
+
+.mcq-text{
+    flex:1;
+    font-size:14px;
+    line-height:1.6;
+}
+.reading-questions-col h4{
+    margin-bottom:22px;
+}
+
+.q-item{
+    margin-bottom:22px;
+}
+
+.q-label{
+    line-height:1.7;
+}
+
+.reading-questions{
+    line-height:1.7;
+}
 /* LISTENING TASK */
 .listening-task-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .audio-player-box { background: linear-gradient(135deg, #1a3260, #0f1e3c); padding: 24px; display: flex; align-items: center; gap: 16px; }
