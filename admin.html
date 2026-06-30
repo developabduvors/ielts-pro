@@ -391,7 +391,7 @@ function renderReadingFields(){
   TASK_QUESTIONS = TASK_PASSAGES[ACTIVE_PASSAGE].questions;
 
   const tabsHtml = TASK_FULLTEST ? `
-    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+    <div class="passage-tabs">
       ${TASK_PASSAGES.map((p,pi)=>`<button type="button" class="btn ${pi===ACTIVE_PASSAGE?'btn-primary':'btn-outline'} btn-sm" onclick="switchPassageTab(${pi})">${(p.title||'Passage '+(pi+1)).replace(/</g,'&lt;')}</button>`).join('')}
       <button type="button" class="btn btn-outline btn-sm" onclick="addPassage()">+ Passage</button>
       ${TASK_PASSAGES.length>1?`<button type="button" class="btn btn-danger btn-sm" onclick="removePassage(${ACTIVE_PASSAGE})">Remove this passage</button>`:''}
