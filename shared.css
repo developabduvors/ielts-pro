@@ -387,3 +387,19 @@ audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.1); }
   .welcome-banner h2 { font-size: 1.2rem; }
   .progress-box .pct { font-size: 2rem; }
 }
+
+/* PASSAGE TABS (full reading test — student & admin builder) */
+.passage-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.passage-tabs .btn { width: auto; flex: 0 0 auto; } /* override .btn-primary's width:100% */
+@media (max-width: 560px) {
+  .passage-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; margin: 0 -14px 14px; padding-left: 14px; padding-right: 14px; }
+  .passage-tabs .btn { flex-shrink: 0; }
+}
+
+.footer-btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .footer-btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .reading-passage-col, .reading-questions-col { padding: 16px 16px; }
+}
+
+
