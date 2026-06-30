@@ -99,6 +99,13 @@ function gradeQuestions(questions, answers){
       items.forEach((it,ii)=>{ total++; if((savedMatch[ii]||'').toLowerCase().trim()===(it.answer||'').toLowerCase().trim()) correct++; });
       return;
     }
+    if(q.type==='mcq_multi'){
+      const correctSet = q.answer||[];
+      const savedSet = Array.isArray(saved) ? saved : [];
+      total += correctSet.length;
+      correctSet.forEach(letter=>{ if(savedSet.includes(letter)) correct++; });
+      return;
+    }
     total++;
     if(q.type==='gap_fill' || q.type==='short_answer'){
       if((saved||'').toString().toLowerCase().trim()===(q.answer||'').toLowerCase().trim()) correct++;
