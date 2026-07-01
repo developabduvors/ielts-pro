@@ -38,8 +38,9 @@ export async function studentLogin(_: { error?: string } | undefined, formData: 
       device_session_id: deviceSession.id,
       session_token: token
     });
-  } catch {
-    return { error: "Login is temporarily unavailable. Try again or contact your teacher." };
+  } catch (error) {
+    console.error("Student login failed", error);
+    return { error: "Student access setup is not finished yet. Ask the admin to apply the Supabase migration, then try again." };
   }
 
   redirect("/dashboard");

@@ -57,6 +57,7 @@ function StudentLoginForm() {
           </label>
           {sessionError === "session-revoked" ? <p className="form-error">This device session was revoked or your access was closed. Contact your teacher.</p> : null}
           {sessionError === "session-expired" ? <p className="form-error">Your session expired. Enter your Student Access ID again.</p> : null}
+          {sessionError === "access-setup" ? <p className="form-error">Student access setup is not finished yet. Ask the admin to apply the Supabase migration.</p> : null}
           {state?.error ? <p className="form-error">{state.error}</p> : null}
           <Button disabled={pending}>{pending ? "Checking..." : "Enter Student Portal"}</Button>
         </form>

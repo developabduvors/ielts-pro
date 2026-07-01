@@ -7,10 +7,15 @@ import { AdminShell } from "../components/AdminShell";
 export default async function StudentsPage() {
   const admin = await requireAdminSession();
   const supabase = createServerSupabaseClient();
-  const [students, sessions] = await Promise.all([
-    getAllStudents(supabase),
-    getStudentDeviceSessions(supabase)
-  ]);
+  const students = await getAllStudents(supabase);
+  let sessions: Awaited<ReturnType<typeof getStudentDeviceSessions>> = [];
+  let accessSetupWarning = "";
+  try {
+    sessions = await getStudentDeviceSessions(supabase);
+  } catch (error) {
+    console.error("Student device sessions unavailable", error);
+    accessSetupWarning = "Student device sessions are not available yet. Apply the Supabase student access migration before using device kick/revoke.";
+  }
   const sessionsByStudent = new Map<string, typeof sessions>();
   sessions.forEach((session) => {
     sessionsByStudent.set(session.student_id, [...(sessionsByStudent.get(session.student_id) || []), session]);
@@ -52,6 +57,8 @@ export default async function StudentsPage() {
           <small>{sessions.filter((session) => session.is_active !== false && !session.revoked_at).length} active device sessions</small>
         </Card>
       </div>
+
+      {accessSetupWarning ? <p className="form-error">{accessSetupWarning}</p> : null}
 
       <Card className="panel">
         {students.length ? (

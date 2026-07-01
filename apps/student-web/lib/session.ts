@@ -48,12 +48,19 @@ export async function requireStudentSession() {
     redirect("/?error=session-expired");
   }
   const requestHeaders = await headers();
-  const valid = await validateStudentDeviceSession(createServerSupabaseClient(), {
-    studentId: session.id,
-    deviceSessionId: session.device_session_id,
-    sessionTokenHash: hashStudentSessionToken(session.session_token),
-    userAgent: requestHeaders.get("user-agent")
-  });
+  let valid = false;
+  try {
+    valid = await validateStudentDeviceSession(createServerSupabaseClient(), {
+      studentId: session.id,
+      deviceSessionId: session.device_session_id,
+      sessionTokenHash: hashStudentSessionToken(session.session_token),
+      userAgent: requestHeaders.get("user-agent")
+    });
+  } catch (error) {
+    console.error("Student session validation failed", error);
+    await clearStudentSession();
+    redirect("/?error=access-setup");
+  }
   if (!valid) {
     await clearStudentSession();
     redirect("/?error=session-revoked");
