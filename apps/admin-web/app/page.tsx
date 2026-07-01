@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
             <Input name="password" type="password" autoComplete="current-password" required />
           </label>
           {state?.error ? <p className="form-error">{state.error}</p> : null}
-          <Button disabled={pending}>{pending ? "Signing in..." : "Open teacher panel"}</Button>
+          <Button disabled={pending}>{pending ? "Signing in…" : "Open teacher panel"}</Button>
         </form>
       </Card>
     </main>

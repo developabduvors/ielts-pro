@@ -76,7 +76,7 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
               {task.skill === "writing" ? (
                 <label className="writing-box">
                   Your response
-                  <Textarea name="writing_answer" placeholder="Write your IELTS response here..." required />
+                <Textarea name="writing_answer" placeholder="Write your IELTS response here…" required />
                 </label>
               ) : content.questions?.length ? content.questions.map((question, index) => <QuestionInput question={question} index={index} key={index} />) : <EmptyState title="No questions" body="This task has no questions yet." />}
               <Button type="submit">Submit answers</Button>

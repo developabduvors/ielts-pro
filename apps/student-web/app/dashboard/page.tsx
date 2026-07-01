@@ -34,6 +34,11 @@ export default async function DashboardPage() {
               <LinkButton href="#practice">Start practice</LinkButton>
               <LinkButton variant="secondary" href="/progress">View results</LinkButton>
             </div>
+            <div className="exam-strip" aria-label="Practice flow">
+              <span>Choose skill</span>
+              <span>Answer task</span>
+              <span>Review result</span>
+            </div>
           </div>
           <div className="hero-meter">
             <span>Overall completion</span>

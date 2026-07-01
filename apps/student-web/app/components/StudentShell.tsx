@@ -13,7 +13,7 @@ export function StudentShell({ name, children }: { name: string; children: React
             <Link href="/dashboard">Practice</Link>
             <Link href="/progress">Results</Link>
             <form action={studentLogout}>
-              <button className="btn btn-ghost">Logout</button>
+              <button className="btn btn-ghost" aria-label="Logout from student portal">Logout</button>
             </form>
           </nav>
           <div className="student-chip">{name}</div>

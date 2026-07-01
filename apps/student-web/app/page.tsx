@@ -20,6 +20,15 @@ export default function StudentLoginPage() {
           <span>Writing</span>
           <span>Full tests</span>
         </div>
+        <div className="study-map" aria-hidden="true">
+          <div className="study-map-head">
+            <span>Band path</span>
+            <strong>7.0+</strong>
+          </div>
+          <div className="study-row"><span>R</span><i /><b>Passage drills</b></div>
+          <div className="study-row"><span>L</span><i /><b>Audio sections</b></div>
+          <div className="study-row"><span>W</span><i /><b>Teacher feedback</b></div>
+        </div>
       </section>
       <Card className="login-card">
         <p className="eyebrow">Assigned access</p>
@@ -35,7 +44,7 @@ export default function StudentLoginPage() {
             <Input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="1111111" required />
           </label>
           {state?.error ? <p className="form-error">{state.error}</p> : null}
-          <Button disabled={pending}>{pending ? "Checking..." : "Open practice room"}</Button>
+          <Button disabled={pending}>{pending ? "Checking…" : "Open practice room"}</Button>
         </form>
       </Card>
     </main>

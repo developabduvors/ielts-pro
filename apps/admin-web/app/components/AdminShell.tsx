@@ -25,7 +25,7 @@ function Sidebar({ email }: { email: string }) {
       </nav>
       <div className="sidebar-user">
         <p>{email}</p>
-        <form action={adminLogout}><button className="btn btn-ghost">Logout</button></form>
+        <form action={adminLogout}><button className="btn btn-ghost" aria-label="Logout from admin panel">Logout</button></form>
       </div>
     </>
   );
