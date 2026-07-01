@@ -336,6 +336,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .question { scroll-margin-top: 90px; border: 1px solid #e3eaf4; border-radius: 8px; padding: 14px; display: grid; gap: 10px; background: #fbfdff; }
 .question legend { padding: 0 4px; line-height: 1.45; }
 .question label { display: grid; gap: 7px; }
+.completion-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 10px;
+  align-items: center;
+  line-height: 1.6;
+}
+.completion-inline {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.completion-inline .field {
+  width: 150px;
+  min-height: 34px;
+  padding: 7px 10px;
+}
 .option-row { display: flex; align-items: flex-start; gap: 9px; padding: 7px 8px; border-radius: 8px; }
 .option-row:hover { background: #eef6ff; }
 .option-row input { margin-top: 3px; }
@@ -382,4 +399,5 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .test-card, .submitted-panel, .exam-topline { grid-template-columns: 1fr; display: grid; }
   .test-card-action { justify-self: start; }
   .hero-card, .login-card, .passage, .question-panel, .test-aside { padding: 18px; }
+  .completion-line { grid-template-columns: 1fr; }
 }

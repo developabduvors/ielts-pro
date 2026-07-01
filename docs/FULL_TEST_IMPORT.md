@@ -2,7 +2,9 @@
 
 Admin route: `/full-tests/new`
 
-The JSON import creates one `lessons` row and one `tasks` row with `skill = "full_test"`.
+The full-test JSON import creates one `lessons` row and one `tasks` row with `skill = "full_test"`.
+
+The builder also supports separate Reading, Listening, and Writing JSON imports. Use those when a teacher wants easier editing and smaller failure scope.
 
 ## Minimal Shape
 
@@ -55,6 +57,70 @@ The JSON import creates one `lessons` row and one `tasks` row with `skill = "ful
 - `short_answer`: text answer.
 - `gap_fill`, `summary_completion`, `table_completion`, `note_completion`, `flow_chart`, `diagram_label`: use `items`.
 - `matching`, `sentence_endings`: use `items` and optional `matchOptions`.
+
+## Note Completion
+
+Use `___` or `[blank]` inside the item label where the student input should appear.
+
+```json
+{
+  "type": "note_completion",
+  "question": "Complete the notes below.",
+  "items": [
+    {
+      "label": "their grandfather's wealth came from ___ and transportation businesses",
+      "answer": "coal"
+    },
+    {
+      "label": "their ___ was designed to encourage collecting art",
+      "answer": "education"
+    }
+  ]
+}
+```
+
+## Separate Skill Imports
+
+Reading JSON:
+
+```json
+{
+  "title": "Reading Passage 1",
+  "passage_html": "<h2>The Davies Sisters</h2><p>Passage text...</p>",
+  "questions": [
+    {
+      "type": "note_completion",
+      "question": "Complete the notes below.",
+      "items": [
+        { "label": "their grandfather's wealth came from ___ and transportation businesses", "answer": "coal" }
+      ]
+    }
+  ]
+}
+```
+
+Listening JSON:
+
+```json
+{
+  "title": "Listening Section 1",
+  "audio_url": "https://example.com/listening.mp3",
+  "questions": [
+    { "type": "short_answer", "question": "What time does it start?", "answer": "9:30" }
+  ]
+}
+```
+
+Writing JSON:
+
+```json
+{
+  "title": "Writing Task 2",
+  "prompt": "Some people believe..."
+}
+```
+
+If JSON parsing, upload, or Supabase write fails, the builder redirects back to `/full-tests/new` with a visible error message instead of crashing the page.
 
 ## Audio
 

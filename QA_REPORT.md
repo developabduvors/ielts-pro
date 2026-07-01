@@ -64,6 +64,8 @@ Additional browser QA in this pass:
 - Admin Full Test Builder desktop screenshot passed with no console errors.
 - Admin Full Test Builder mobile screenshot passed with no console errors.
 - Admin DB-backed pages require local Supabase env values; without them, `/lessons` correctly cannot render protected data locally.
+- Builder errors from invalid JSON/upload/Supabase writes now return to `/full-tests/new` with a visible error message instead of crashing the page.
+- Manual Reading/Listening question type controls now include completion-style question types.
 
 ## Manual Live Checks Still Required
 
@@ -80,11 +82,13 @@ These require production Supabase env values and real seeded data:
 9. Create a lesson.
 10. Create a full test draft from `/full-tests/new`.
 11. Import a full test JSON file.
-12. Upload a listening audio file to the `task-media` bucket and verify student playback.
-13. Review a writing submission and save score/feedback.
-14. Confirm student `/progress` shows the teacher feedback.
-15. Confirm unpublished task direct URL returns blocked/not found.
+12. Import Reading, Listening, and Writing JSON separately.
+13. Upload a listening audio file to the `task-media` bucket and verify student playback.
+14. Open a note completion task and verify blanks render inline.
+15. Review a writing submission and save score/feedback.
+16. Confirm student `/progress` shows the teacher feedback.
+17. Confirm unpublished task direct URL returns blocked/not found.
 
 ## Result
 
-The UI is now substantially more premium and IELTS-specific. Full-test creation, JSON import, student section rendering, and server-side audio upload support are implemented. Remaining high-value work: add existing-test edit/reorder screens, live writing word count, and run production Supabase smoke checks after deployment.
+The UI is now substantially more premium and IELTS-specific. Full-test creation, split skill JSON import, student section rendering, inline completion blanks, and server-side audio upload support are implemented. Remaining high-value work: add existing-test edit/reorder screens, live writing word count, and run production Supabase smoke checks after deployment.

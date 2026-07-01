@@ -166,10 +166,7 @@ function QuestionInput({ question, index }: { question: Question; index: number 
       <fieldset className="question" id={`question-${index + 1}`}>
         <legend><strong>{index + 1}. {question.question || "Complete the items"}</strong></legend>
         {question.items.map((item, itemIndex) => (
-          <label key={itemIndex}>
-            {item.label || `Item ${itemIndex + 1}`}
-            <Input name={`q_${index}_${itemIndex}`} placeholder="Your answer" />
-          </label>
+          <CompletionLine index={index} itemIndex={itemIndex} label={item.label || `Item ${itemIndex + 1}: ___`} key={itemIndex} />
         ))}
       </fieldset>
     );
@@ -179,6 +176,25 @@ function QuestionInput({ question, index }: { question: Question; index: number 
     <label className="question" id={`question-${index + 1}`}>
       <strong>{index + 1}. {question.question}</strong>
       <Input name={`q_${index}`} placeholder="Your answer" />
+    </label>
+  );
+}
+
+function CompletionLine({ index, itemIndex, label }: { index: number; itemIndex: number; label: string }) {
+  const parts = label.includes("___") ? label.split("___") : label.split("[blank]");
+  if (parts.length < 2) {
+    return (
+      <label className="completion-line">
+        <span>{label}</span>
+        <Input name={`q_${index}_${itemIndex}`} placeholder="Answer" />
+      </label>
+    );
+  }
+  return (
+    <label className="completion-line completion-inline">
+      <span>{parts[0]}</span>
+      <Input name={`q_${index}_${itemIndex}`} placeholder={`${itemIndex + 1}`} />
+      <span>{parts.slice(1).join("___")}</span>
     </label>
   );
 }

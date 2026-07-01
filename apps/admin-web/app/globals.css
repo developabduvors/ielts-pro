@@ -225,6 +225,15 @@ tr:last-child td { border-bottom: 0; }
 }
 .builder-step h2 { margin: 6px 0 0; font-size: 24px; letter-spacing: 0; }
 .builder-aside { display: grid; gap: 18px; position: sticky; top: 20px; }
+.split-imports { display: grid; gap: 14px; }
+.skill-import-form {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.skill-import-form h3 { margin: 0; font-size: 16px; }
+.skill-import-form .textarea { min-height: 160px; font-size: 12px; }
 .publish-card {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;

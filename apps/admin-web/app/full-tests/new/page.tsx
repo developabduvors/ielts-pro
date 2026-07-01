@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Badge, Button, Card, Input, Select, Textarea } from "@ielts-pro/ui";
+import { Badge, Button, Card, ErrorState, Input, Select, Textarea } from "@ielts-pro/ui";
 import { requireAdminSession } from "@/lib/session";
 import { AdminShell } from "../../components/AdminShell";
-import { createFullTestDraftAction, importFullTestJsonAction } from "../../actions/lms";
+import { createFullTestDraftAction, importFullTestJsonAction, importSkillJsonAction } from "../../actions/lms";
 
 const sampleImport = `{
   "title": "Academic Full Test 1",
@@ -40,8 +40,41 @@ const sampleImport = `{
   ]
 }`;
 
-export default async function NewFullTestPage() {
+const readingImport = `{
+  "title": "Reading Passage 1",
+  "passage_html": "<h2>The Davies Sisters</h2><p>Passage text...</p>",
+  "questions": [
+    {
+      "type": "note_completion",
+      "question": "Complete the notes below.",
+      "items": [
+        { "label": "their grandfather's wealth came from ___ and transportation businesses", "answer": "coal" }
+      ]
+    }
+  ]
+}`;
+
+const listeningImport = `{
+  "title": "Listening Section 1",
+  "audio_url": "https://example.com/listening.mp3",
+  "questions": [
+    {
+      "type": "short_answer",
+      "question": "What time does the session begin?",
+      "answer": "9:30"
+    }
+  ]
+}`;
+
+const writingImport = `{
+  "title": "Writing Task 2",
+  "prompt": "Some people believe that online learning is more effective than classroom learning. Discuss both views and give your opinion."
+}`;
+
+export default async function NewFullTestPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
   const admin = await requireAdminSession();
+  const params = searchParams ? await searchParams : {};
+  const error = params.error ? decodeURIComponent(params.error) : "";
 
   return (
     <AdminShell email={admin.email}>
@@ -53,6 +86,8 @@ export default async function NewFullTestPage() {
         </div>
         <Link className="btn btn-secondary" href="/full-tests">Back to library</Link>
       </div>
+
+      {error ? <ErrorState title="Builder error" body={error} /> : null}
 
       <div className="builder-layout">
         <form action={createFullTestDraftAction} className="builder-form">
@@ -75,8 +110,13 @@ export default async function NewFullTestPage() {
             <div className="builder-step"><span>2</span><div><Badge tone="reading">Reading</Badge><h2>Reading section</h2></div></div>
             <label>Section title<Input name="reading_title" defaultValue="Reading Passage 1" /></label>
             <label>Passage text<Textarea name="reading_passage" placeholder="Paste the reading passage. Paragraph breaks are preserved for the student view." /></label>
-            <label>Question<Input name="reading_question" placeholder="What is the writer's main purpose?" /></label>
-            <label>Options, one per line<Textarea name="reading_options" placeholder={"A. Explain a problem\nB. Compare two ideas\nC. Describe a solution"} /></label>
+            <div className="two-col">
+              <label>Question type<Select name="reading_question_type" defaultValue="note_completion"><option value="note_completion">Note completion</option><option value="mcq">Multiple choice</option><option value="short_answer">Short answer</option><option value="summary_completion">Summary completion</option><option value="table_completion">Table completion</option><option value="mcq_multi">Multiple answers</option></Select></label>
+              <label>Question<Input name="reading_question" placeholder="Complete the notes below." /></label>
+            </div>
+            <label>Options, one per line<Textarea name="reading_options" placeholder={"Use for MCQ only:\nA. Explain a problem\nB. Compare two ideas\nC. Describe a solution"} /></label>
+            <label>Gap lines for completion questions<Textarea name="reading_note_items" placeholder={"their grandfather's wealth came from ___ and transportation businesses\ntheir ___ was designed to encourage collecting art"} /></label>
+            <label>Completion answers, one per line<Textarea name="reading_note_answers" placeholder={"coal\neducation"} /></label>
             <label>Correct answer<Input name="reading_answer" placeholder="A" /></label>
           </Card>
 
@@ -88,8 +128,13 @@ export default async function NewFullTestPage() {
               <label>Or paste audio URL<Input name="audio_url" placeholder="https://..." /></label>
             </div>
             <label>Transcript / teacher note<Textarea name="listening_transcript" placeholder="Optional transcript for internal checking." /></label>
-            <label>Question<Input name="listening_question" placeholder="What time does the session begin?" /></label>
-            <label>Options, one per line<Textarea name="listening_options" placeholder={"A. 9:00\nB. 9:30\nC. 10:00"} /></label>
+            <div className="two-col">
+              <label>Question type<Select name="listening_question_type" defaultValue="short_answer"><option value="short_answer">Short answer</option><option value="note_completion">Note completion</option><option value="mcq">Multiple choice</option><option value="summary_completion">Summary completion</option><option value="table_completion">Table completion</option><option value="mcq_multi">Multiple answers</option></Select></label>
+              <label>Question<Input name="listening_question" placeholder="What time does the session begin?" /></label>
+            </div>
+            <label>Options, one per line<Textarea name="listening_options" placeholder={"Use for MCQ only:\nA. 9:00\nB. 9:30\nC. 10:00"} /></label>
+            <label>Gap lines for completion questions<Textarea name="listening_note_items" placeholder={"The session begins at ___\nStudents should bring ___"} /></label>
+            <label>Completion answers, one per line<Textarea name="listening_note_answers" placeholder={"9:30\npassport"} /></label>
             <label>Correct answer<Input name="listening_answer" placeholder="B" /></label>
           </Card>
 
@@ -117,13 +162,22 @@ export default async function NewFullTestPage() {
         <aside className="builder-aside">
           <Card className="panel">
             <p className="eyebrow">Import</p>
-            <h2>JSON question bank</h2>
-            <p className="muted">Paste JSON or upload a `.json` file. The import creates a full-test lesson and task.</p>
+            <h2>Full test JSON</h2>
+            <p className="muted">Use this only when the JSON already contains all sections. If one section is broken, use the separate skill imports below.</p>
             <form action={importFullTestJsonAction} className="form-stack">
               <label>Upload JSON<Input name="json_file" type="file" accept="application/json,.json" /></label>
               <label>Paste JSON<Textarea name="import_json" defaultValue={sampleImport} /></label>
-              <Button type="submit" variant="secondary">Import JSON</Button>
+              <Button type="submit" variant="secondary">Import full test</Button>
             </form>
+          </Card>
+
+          <Card className="panel split-imports">
+            <p className="eyebrow">Separate imports</p>
+            <h2>Import by skill</h2>
+            <p className="muted">Reading, Listening, and Writing can be created separately, so errors are easier to edit.</p>
+            <SkillImportForm skill="reading" label="Reading JSON" sample={readingImport} />
+            <SkillImportForm skill="listening" label="Listening JSON" sample={listeningImport} />
+            <SkillImportForm skill="writing" label="Writing JSON" sample={writingImport} />
           </Card>
 
           <Card className="panel">
@@ -140,5 +194,17 @@ export default async function NewFullTestPage() {
         </aside>
       </div>
     </AdminShell>
+  );
+}
+
+function SkillImportForm({ skill, label, sample }: { skill: "reading" | "listening" | "writing"; label: string; sample: string }) {
+  return (
+    <form action={importSkillJsonAction} className="skill-import-form">
+      <input type="hidden" name="skill" value={skill} />
+      <h3>{label}</h3>
+      <label>Upload JSON<Input name={`${skill}_json_file`} type="file" accept="application/json,.json" /></label>
+      <label>Paste JSON<Textarea name={`${skill}_import_json`} defaultValue={sample} /></label>
+      <Button type="submit" variant="secondary">Import {skill}</Button>
+    </form>
   );
 }

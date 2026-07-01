@@ -14,3 +14,6 @@
 - Added `/full-tests` library and `/full-tests/new` Full Test Builder with Reading, Listening, Writing, JSON import, and Supabase Storage audio upload support.
 - Added `docs/FULL_TEST_IMPORT.md` for the full-test JSON schema and publishing workflow.
 - Updated the student test player to render full-test sections instead of treating them like reading-only tasks.
+- Prevented JSON/import failures from crashing the builder page; errors now return as visible builder messages.
+- Added separate Reading, Listening, and Writing JSON import flows.
+- Added manual question-type controls and inline completion blanks for note/summary/table-style questions.
