@@ -1,7 +1,7 @@
 const { execSync } = require("node:child_process");
 const fs = require("node:fs");
 
-const target = (process.env.VERCEL_APP || "student").toLowerCase();
+const target = (process.env.LMS_APP_TARGET || "student").toLowerCase();
 
 const apps = {
   student: {
@@ -17,7 +17,7 @@ const apps = {
 const app = apps[target];
 
 if (!app) {
-  console.error(`Unknown VERCEL_APP "${target}". Use "student" or "admin".`);
+  console.error(`Unknown LMS_APP_TARGET "${target}". Use "student" or "admin".`);
   process.exit(1);
 }
 

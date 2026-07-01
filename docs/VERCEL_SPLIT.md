@@ -36,7 +36,7 @@ Environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY` - server-only, needed for admin data management
 - `ADMIN_SESSION_SECRET` - strong random string
 - `ADMIN_EMAILS` - comma-separated admin emails, e.g. `miravzalsalakhiddinov@gmail.com`
-- `VERCEL_APP` - set to `admin`
+- `LMS_APP_TARGET` - set to `admin`
 
 Suggested production domain:
 
