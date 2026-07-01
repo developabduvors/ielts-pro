@@ -87,7 +87,7 @@ try {
   });
 
   await check("student protected routes redirect", async () => {
-    for (const route of ["/dashboard", "/progress", "/tests/smoke-task"]) {
+    for (const route of ["/dashboard", "/practice", "/practice/reading", "/practice/listening", "/practice/writing", "/practice/full-tests", "/progress", "/tests/smoke-task"]) {
       const { response } = await get(`http://localhost:3000${route}`, { redirect: "manual" });
       if (![303, 307, 308].includes(response.status)) {
         throw new Error(`${route} returned ${response.status}, expected redirect`);

@@ -265,7 +265,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-meter span, .hero-meter small { color: rgba(255,255,255,.68); font-weight: 800; }
 .hero-meter strong { display: block; margin: 4px 0 12px; font-size: 46px; letter-spacing: 0; }
 .skill-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 20px; }
-.skill-card { padding: 18px; border-left: 5px solid var(--blue); display: grid; gap: 4px; }
+.skill-card { padding: 18px; border-left: 5px solid var(--blue); display: grid; gap: 4px; transition: transform .18s, border-color .18s, box-shadow .18s; }
+.skill-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .skill-card span { color: var(--muted); font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .1em; }
 .skill-card strong { font-size: 32px; letter-spacing: 0; }
 .skill-card small { color: var(--muted); font-weight: 750; }
@@ -303,6 +304,109 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .right-rail { position: sticky; top: 82px; }
 .score-pill { color: var(--blue-dark); font-size: 18px; }
 
+.practice-hero, .skill-page-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 28px;
+  box-shadow: var(--soft-shadow);
+  margin-bottom: 18px;
+}
+.practice-hero h1, .skill-page-hero h1 {
+  margin: 0 0 12px;
+  max-width: 780px;
+  font-size: clamp(38px, 5vw, 66px);
+  line-height: .96;
+  letter-spacing: 0;
+}
+.practice-score {
+  border: 1px solid #dce6f4;
+  border-radius: 8px;
+  background: #f7fbff;
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+}
+.practice-score span, .practice-score small { color: var(--muted); font-weight: 850; }
+.practice-score strong { font-size: 42px; letter-spacing: 0; }
+.practice-score .progress-wrap { background: #e1e9f5; }
+.practice-skills {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.practice-skill-link {
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--blue);
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+  min-height: 170px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  box-shadow: var(--soft-shadow);
+  transition: transform .18s, box-shadow .18s;
+}
+.practice-skill-link:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.practice-skill-link span { color: var(--muted); font-weight: 950; text-transform: uppercase; font-size: 12px; letter-spacing: .1em; }
+.practice-skill-link strong { font-size: 44px; line-height: .9; letter-spacing: 0; }
+.practice-skill-link small { color: var(--muted); line-height: 1.5; }
+.practice-skill-link em { color: var(--blue-dark); font-style: normal; font-weight: 900; margin-top: 6px; }
+.practice-skill-link.skill-listening { border-top-color: var(--amber); }
+.practice-skill-link.skill-writing { border-top-color: var(--violet); }
+.practice-skill-link.skill-full { border-top-color: var(--teal); }
+.skill-page-hero {
+  background: linear-gradient(135deg, #fff, #f5f9ff);
+  border-left: 6px solid var(--blue);
+}
+.skill-page-listening { border-left-color: var(--amber); }
+.skill-page-writing { border-left-color: var(--violet); }
+.skill-page-full { border-left-color: var(--teal); }
+.breadcrumb-link {
+  display: inline-flex;
+  width: max-content;
+  color: var(--blue-dark);
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+.filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.filter-strip span {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+.task-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.task-meta-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  display: grid;
+  gap: 4px;
+}
+.task-meta-grid span { color: var(--muted); font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .08em; }
+.task-meta-grid strong { font-size: 32px; letter-spacing: 0; }
+
 .exam-topline {
   display: flex;
   align-items: center;
@@ -316,6 +420,21 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   grid-template-columns: minmax(0, 1fr) minmax(360px, 520px) 210px;
   gap: 16px;
   align-items: start;
+}
+.exam-status-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exam-status-strip span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 900;
 }
 .passage, .question-panel, .test-aside, .submitted-panel { padding: 20px; }
 .passage { line-height: 1.75; max-height: calc(100vh - 150px); overflow: auto; }
@@ -357,6 +476,27 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .option-row:hover { background: #eef6ff; }
 .option-row input { margin-top: 3px; }
 .writing-box { display: grid; gap: 8px; font-weight: 850; }
+.writing-meter {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+.writing-progress {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e9f3;
+  overflow: hidden;
+}
+.writing-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--violet), var(--blue));
+}
 .test-aside { position: sticky; top: 82px; display: grid; gap: 14px; }
 .test-aside h3 { margin: 0; font-size: 17px; }
 .question-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -386,8 +526,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 @media (max-width: 880px) {
-  .login-screen, .hero-card, .content-grid { grid-template-columns: 1fr; }
-  .stats-grid, .skill-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .login-screen, .hero-card, .content-grid, .practice-hero, .skill-page-hero { grid-template-columns: 1fr; }
+  .stats-grid, .skill-grid, .practice-skills { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .student-topbar-inner { grid-template-columns: 1fr; justify-items: start; }
   .student-nav { justify-content: flex-start; flex-wrap: wrap; }
 }
@@ -395,7 +535,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 600px) {
   .page, .test-page { padding: 20px 14px 40px; }
   .login-screen { padding: 26px 16px; }
-  .stats-grid, .skill-grid { grid-template-columns: 1fr; }
+  .stats-grid, .skill-grid, .practice-skills, .task-meta-grid { grid-template-columns: 1fr; }
   .test-card, .submitted-panel, .exam-topline { grid-template-columns: 1fr; display: grid; }
   .test-card-action { justify-self: start; }
   .hero-card, .login-card, .passage, .question-panel, .test-aside { padding: 18px; }

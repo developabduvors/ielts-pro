@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, EmptyState, Input, QuestionNavigator, Textarea } from "@ielts-pro/ui";
+import { Badge, Button, Card, EmptyState, Input, QuestionNavigator } from "@ielts-pro/ui";
 import { createServerSupabaseClient, getPublishedTaskById, getSubmissionForTask, parseTaskContent, sanitizeTeacherHtml, type Question, type TaskContent } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { submitTaskAttempt } from "../../actions/attempts";
 import { StudentShell } from "../../components/StudentShell";
+import { WritingAnswerBox } from "../../components/WritingAnswerBox";
 
 export default async function TestPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params;
@@ -16,8 +17,10 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
   ]);
   if (!task) notFound();
   const content = parseTaskContent<TaskContent>(task.content, { questions: [] });
-  const questionCount = content.questions?.length || 0;
+  const questions = flattenQuestions(content);
+  const questionCount = questions.length;
   const isFullTest = task.skill === "full_test";
+  const timeLabel = content.time_limit_minutes || content.duration_minutes ? `${content.time_limit_minutes || content.duration_minutes} min` : "Study mode";
 
   return (
     <StudentShell name={session.name}>
@@ -43,6 +46,11 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
         ) : (
           <form action={submitTaskAttempt} className="exam-layout">
             <input type="hidden" name="taskId" value={task.id} />
+            <div className="exam-status-strip">
+              <span>{questionCount || (task.skill === "writing" ? 1 : 0)} tasks</span>
+              <span>{timeLabel}</span>
+              <span>{task.skill === "writing" ? "Teacher reviewed" : "Auto checked"}</span>
+            </div>
             <section className="card passage">
               {isFullTest ? (
                 <FullTestBrief content={content} />
@@ -77,18 +85,12 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
                 {content.time_limit_minutes ? <Badge tone="warning">{content.time_limit_minutes} min</Badge> : null}
               </div>
               {task.skill === "writing" ? (
-                <label className="writing-box">
-                  Your response
-                <Textarea name="writing_answer" placeholder="Write your IELTS response here…" required />
-                </label>
+                <WritingAnswerBox name="writing_answer" label="Your response" placeholder="Write your IELTS response here..." minWords={content.min_words} required />
               ) : (
                 <>
-                  {content.questions?.length ? content.questions.map((question, index) => <QuestionInput question={question} index={index} key={index} />) : <EmptyState title="No objective questions" body="This task may only contain writing prompts." />}
+                  {questions.length ? questions.map((question, index) => <QuestionInput question={question} index={index} key={index} />) : <EmptyState title="No objective questions" body="This task may only contain writing prompts." />}
                   {isFullTest && writingPrompt(content) ? (
-                    <label className="writing-box">
-                      Writing response
-                      <Textarea name="full_writing_answer" placeholder="Write your Task 1 and Task 2 responses here…" />
-                    </label>
+                    <WritingAnswerBox name="full_writing_answer" label="Writing response" placeholder="Write your Task 1 and Task 2 responses here..." minWords={content.min_words} />
                   ) : null}
                 </>
               )}
@@ -140,6 +142,13 @@ function FullTestBrief({ content }: { content: TaskContent }) {
 
 function writingPrompt(content: TaskContent) {
   return content.prompt || content.sections?.some((section) => section.skill === "writing" && section.prompt);
+}
+
+function flattenQuestions(content: TaskContent): Question[] {
+  return [
+    ...(content.questions || []),
+    ...((content.sections || []).flatMap((section) => section.questions || []))
+  ];
 }
 
 function QuestionInput({ question, index }: { question: Question; index: number }) {

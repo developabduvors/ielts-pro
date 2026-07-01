@@ -10,7 +10,8 @@ export function StudentShell({ name, children }: { name: string; children: React
             IELTS <span>Pro</span>
           </Link>
           <nav className="student-nav" aria-label="Student navigation">
-            <Link href="/dashboard">Practice</Link>
+            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/practice">Practice Tests</Link>
             <Link href="/progress">Results</Link>
             <form action={studentLogout}>
               <button className="btn btn-ghost" aria-label="Logout from student portal">Logout</button>

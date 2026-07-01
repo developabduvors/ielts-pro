@@ -17,3 +17,7 @@
 - Prevented JSON/import failures from crashing the builder page; errors now return as visible builder messages.
 - Added separate Reading, Listening, and Writing JSON import flows.
 - Added manual question-type controls and inline completion blanks for note/summary/table-style questions.
+- Added student `/practice` and `/practice/[skill]` pages for real Reading, Listening, Writing, and Full Test navigation.
+- Linked dashboard skill cards to their real practice pages.
+- Added live writing word count and target progress in the student test player.
+- Flattened full-test section questions for consistent student rendering and grading.

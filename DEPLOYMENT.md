@@ -42,9 +42,12 @@ Student:
 - `/` loads the premium student login.
 - Student login works with a real student.
 - `/dashboard` shows published tests only.
+- `/practice` opens the skill selection page.
+- `/practice/reading`, `/practice/listening`, `/practice/writing`, and `/practice/full-tests` show the correct published tasks.
 - A Reading task opens.
 - A Listening task opens and audio appears when attached.
 - A Writing task opens and submits.
+- Writing answer box shows live word count.
 - `/progress` shows attempts and feedback.
 
 Admin:

@@ -17,7 +17,7 @@ export default async function ProgressPage() {
             <h1>Your attempts and teacher feedback</h1>
             <p className="muted">Reviewed writing and scored objective tasks stay here for follow-up lessons.</p>
           </div>
-          <Link href="/dashboard" className="btn btn-secondary">Back to practice</Link>
+          <Link href="/practice" className="btn btn-secondary">Back to practice</Link>
         </div>
         <div className="test-list">
           {submissions.map((submission) => (

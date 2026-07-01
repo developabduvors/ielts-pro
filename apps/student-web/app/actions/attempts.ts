@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient, getPublishedTaskById, gradeQuestions, parseTaskContent, submitAttempt, type TaskContent } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTaskById, gradeQuestions, parseTaskContent, submitAttempt, type Question, type TaskContent } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 
 export async function submitTaskAttempt(formData: FormData) {
@@ -12,6 +12,7 @@ export async function submitTaskAttempt(formData: FormData) {
   if (!task) redirect("/dashboard?error=unavailable");
 
   const content = parseTaskContent<TaskContent>(task.content, { questions: [] });
+  const questions = flattenQuestions(content);
 
   if (task.skill === "writing") {
     const answer = String(formData.get("writing_answer") || "").trim();
@@ -21,7 +22,7 @@ export async function submitTaskAttempt(formData: FormData) {
   }
 
   const answers: Record<string, unknown> = {};
-  (content.questions || []).forEach((question, index) => {
+  questions.forEach((question, index) => {
     if (question.type === "matching" || question.items?.length) {
       const itemAnswers: Record<string, string> = {};
       question.items?.forEach((_, itemIndex) => {
@@ -37,7 +38,7 @@ export async function submitTaskAttempt(formData: FormData) {
     answers[String(index)] = String(formData.get(`q_${index}`) || "").trim();
   });
 
-  const { correct, total } = gradeQuestions(content.questions || [], answers);
+  const { correct, total } = gradeQuestions(questions, answers);
   const fullWritingAnswer = String(formData.get("full_writing_answer") || "").trim();
   if (task.skill === "full_test" && fullWritingAnswer) {
     answers.writing_response = fullWritingAnswer;
@@ -50,4 +51,11 @@ export async function submitTaskAttempt(formData: FormData) {
     total
   });
   redirect("/progress?submitted=test");
+}
+
+function flattenQuestions(content: TaskContent): Question[] {
+  return [
+    ...(content.questions || []),
+    ...((content.sections || []).flatMap((section) => section.questions || []))
+  ];
 }

@@ -5,15 +5,15 @@ Date: 2026-07-01
 ## Skills Used
 
 - `frontend-design`: used for the premium IELTS LMS visual direction and UI polish.
-- `browser:control-in-app-browser`: used for desktop/mobile browser inspection of the student/admin login experiences.
+- `agent-browser`: used for reference-site inspection and local browser snapshots of the student/admin experiences.
 - `web-design-guidelines`: used for accessibility and interface audit checks.
 - `nextjs-best-practices`: used for App Router route/action boundaries and Vercel build checks.
 - `supabase`: used for server-only Supabase Storage upload and Data API safety checks.
-- `webapp-testing`: used for Playwright-based local browser QA.
+- `webapp-testing`: used to define the local browser QA workflow and smoke coverage expectations.
 
 ## Reference Review
 
-`https://ieltsulugbeks.com/` was inspected as a UX benchmark. The useful patterns were:
+`https://ieltsulugbeks.com/` was inspected as a UX benchmark. Homepage, skill selection, Reading practice, real-exam test list, dashboard-style cards, and exam-taking surfaces were reviewed where publicly reachable. The useful patterns were:
 
 - IELTS skill-specific structure for Reading, Listening, Writing, and test practice.
 - Compact exam-like test interface with top/bottom controls and question navigation.
@@ -55,6 +55,7 @@ Smoke test coverage added:
 
 - Student `/` renders.
 - Student `/dashboard`, `/progress`, `/tests/smoke-task` redirect while unauthenticated.
+- Student `/practice` and skill practice routes redirect while unauthenticated.
 - Admin `/` renders.
 - Admin `/dashboard`, `/students`, `/lessons`, `/full-tests`, `/full-tests/new`, `/submissions` redirect while unauthenticated.
 
@@ -66,6 +67,9 @@ Additional browser QA in this pass:
 - Admin DB-backed pages require local Supabase env values; without them, `/lessons` correctly cannot render protected data locally.
 - Builder errors from invalid JSON/upload/Supabase writes now return to `/full-tests/new` with a visible error message instead of crashing the page.
 - Manual Reading/Listening question type controls now include completion-style question types.
+- Student dashboard skill cards now open real skill pages instead of acting as static cards.
+- Student writing answers now show live word count and target progress.
+- Full-test section questions are flattened consistently for rendering and grading.
 
 ## Manual Live Checks Still Required
 
@@ -87,8 +91,9 @@ These require production Supabase env values and real seeded data:
 14. Open a note completion task and verify blanks render inline.
 15. Review a writing submission and save score/feedback.
 16. Confirm student `/progress` shows the teacher feedback.
-17. Confirm unpublished task direct URL returns blocked/not found.
+17. Open `/practice` and each skill page with real data.
+18. Confirm unpublished task direct URL returns blocked/not found.
 
 ## Result
 
-The UI is now substantially more premium and IELTS-specific. Full-test creation, split skill JSON import, student section rendering, inline completion blanks, and server-side audio upload support are implemented. Remaining high-value work: add existing-test edit/reorder screens, live writing word count, and run production Supabase smoke checks after deployment.
+The UI is now substantially more premium and IELTS-specific. Full-test creation, split skill JSON import, student section rendering, skill practice pages, inline completion blanks, live writing word count, and server-side audio upload support are implemented. Remaining high-value work: add existing-test edit/reorder screens and run production Supabase smoke checks after deployment.

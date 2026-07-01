@@ -44,6 +44,7 @@ git diff --check
 - Starts admin app on `localhost:3001`.
 - Verifies student login page renders.
 - Verifies unauthenticated student protected routes redirect.
+- Verifies unauthenticated student practice routes (`/practice` and skill pages) redirect.
 - Verifies admin login page renders.
 - Verifies unauthenticated admin protected routes redirect.
 - Verifies new admin content routes (`/full-tests`, `/full-tests/new`) are protected.
@@ -53,8 +54,9 @@ git diff --check
 The following need real Vercel/Supabase env variables and production data:
 
 - Student login with real student ID.
-- Reading/listening answer submission.
-- Writing submission.
+- Student `/practice` and `/practice/[skill]` with real published tasks.
+- Reading/listening/full-test answer submission.
+- Writing submission and live word-count behavior.
 - Admin Supabase Auth login.
 - Lesson create/publish/unpublish.
 - Full Test Builder save with real Supabase data.

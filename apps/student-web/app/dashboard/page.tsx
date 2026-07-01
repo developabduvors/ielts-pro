@@ -31,7 +31,7 @@ export default async function DashboardPage() {
             <h1>Welcome back, {session.name}</h1>
             <p>Choose a skill, complete published practice, and keep your result history ready for your teacher.</p>
             <div className="hero-actions">
-              <LinkButton href="#practice">Start practice</LinkButton>
+              <LinkButton href="/practice">Start practice</LinkButton>
               <LinkButton variant="secondary" href="/progress">View results</LinkButton>
             </div>
             <div className="exam-strip" aria-label="Practice flow">
@@ -49,10 +49,10 @@ export default async function DashboardPage() {
         </Card>
 
         <section className="skill-grid" aria-label="IELTS skill categories">
-          <Card className="skill-card skill-reading"><span>Reading</span><strong>{readingCount}</strong><small>passage tasks</small></Card>
-          <Card className="skill-card skill-listening"><span>Listening</span><strong>{listeningCount}</strong><small>audio tasks</small></Card>
-          <Card className="skill-card skill-writing"><span>Writing</span><strong>{writingCount}</strong><small>teacher-reviewed</small></Card>
-          <Card className="skill-card skill-full"><span>Full tests</span><strong>{tasks.filter((task) => task.skill === "full_test").length}</strong><small>exam practice</small></Card>
+          <Link href="/practice/reading" className="card skill-card skill-reading"><span>Reading</span><strong>{readingCount}</strong><small>passage tasks</small></Link>
+          <Link href="/practice/listening" className="card skill-card skill-listening"><span>Listening</span><strong>{listeningCount}</strong><small>audio tasks</small></Link>
+          <Link href="/practice/writing" className="card skill-card skill-writing"><span>Writing</span><strong>{writingCount}</strong><small>teacher-reviewed</small></Link>
+          <Link href="/practice/full-tests" className="card skill-card skill-full"><span>Full tests</span><strong>{tasks.filter((task) => task.skill === "full_test").length}</strong><small>exam practice</small></Link>
         </section>
 
         <section className="stats-grid" aria-label="Progress summary">
