@@ -291,14 +291,14 @@ tr:last-child td { border-bottom: 0; }
 .quick-lesson-panel .textarea { min-height: 112px; }
 .quick-lesson-card {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 1fr;
+  gap: 12px;
   align-items: start;
 }
 .quick-lesson-card h2 { margin-bottom: 8px; }
 .quick-lesson-form {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) minmax(220px, 2fr) minmax(150px, .9fr) minmax(90px, .6fr) auto auto;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(240px, 1.6fr) minmax(160px, .9fr) minmax(100px, .7fr);
   gap: 12px;
   align-items: end;
 }
@@ -312,11 +312,13 @@ tr:last-child td { border-bottom: 0; }
   min-height: 46px;
   max-height: 86px;
 }
+.quick-lesson-form label:nth-child(2) { grid-column: span 2; }
 .quick-lesson-form .check-row {
   min-height: 40px;
   align-content: center;
   white-space: nowrap;
 }
+.quick-lesson-form .btn { width: 100%; }
 .studio-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

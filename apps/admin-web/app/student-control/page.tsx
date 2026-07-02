@@ -1,7 +1,8 @@
-import { Badge, Card, StatCard, Table } from "@ielts-pro/ui";
+import { Badge, Button, Card, StatCard, Table } from "@ielts-pro/ui";
 import { createServerSupabaseClient, getAllStudents, getStudentDeviceSessions, getWritingSubmissions } from "@ielts-pro/shared";
 import { requireAdminSession } from "@/lib/session";
 import { AdminShell } from "../components/AdminShell";
+import { revokeAllDevicesAction, toggleStudentAccessAction } from "../actions/lms";
 
 export default async function StudentControlPage() {
   const admin = await requireAdminSession();
@@ -66,6 +67,7 @@ export default async function StudentControlPage() {
               <th>Progress</th>
               <th>Latest work</th>
               <th>Access</th>
+              <th>Control</th>
             </tr>
           </thead>
           <tbody>
@@ -75,6 +77,7 @@ export default async function StudentControlPage() {
               const latest = studentSubmissions[0];
               const trend = progressTrend(studentSubmissions);
               const reviewed = studentSubmissions.filter((submission) => submission.score != null).length;
+              const open = student.is_active !== false && student.access_status !== "closed";
               return (
                 <tr key={student.id}>
                   <td>
@@ -100,10 +103,23 @@ export default async function StudentControlPage() {
                     <p className="table-note">{latest ? `${latest.tasks?.skill || "task"} · ${formatDate(latest.submitted_at)}` : "Assign a test or lesson"}</p>
                   </td>
                   <td>
-                    <Badge tone={student.is_active === false || student.access_status === "closed" ? "warning" : "success"}>
-                      {student.is_active === false || student.access_status === "closed" ? "Closed" : "Open"}
+                    <Badge tone={open ? "success" : "warning"}>
+                      {open ? "Open" : "Closed"}
                     </Badge>
                     <p className="table-note">{studentSessions.filter((session) => session.is_active !== false && !session.revoked_at).length} active device(s)</p>
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <form action={toggleStudentAccessAction}>
+                        <input type="hidden" name="student_id" value={student.id} />
+                        <input type="hidden" name="open" value={String(!open)} />
+                        <Button variant={open ? "danger" : "secondary"}>{open ? "Close access" : "Open access"}</Button>
+                      </form>
+                      <form action={revokeAllDevicesAction}>
+                        <input type="hidden" name="student_id" value={student.id} />
+                        <Button variant="secondary">Revoke devices</Button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               );

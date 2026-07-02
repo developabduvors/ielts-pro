@@ -133,7 +133,7 @@ export default async function LessonsPage() {
             </div>
             {tasks.length ? (
               <Table>
-                <thead><tr><th>Task</th><th>Skill</th><th>Status</th><th>Student route</th></tr></thead>
+                <thead><tr><th>Task</th><th>Skill</th><th>Status</th><th>Control</th><th>Student route</th></tr></thead>
                 <tbody>
                   {tasks.map((task) => {
                     const published = task.lessons?.published === true;
@@ -142,6 +142,13 @@ export default async function LessonsPage() {
                         <td><strong>{task.title}</strong><br /><small>{task.lessons?.title || "No lesson"}</small></td>
                         <td><Badge tone={toneFor(task.skill)}>{labelFor(task.skill)}</Badge></td>
                         <td>{published ? <Badge tone="success">Visible</Badge> : <Badge tone="warning">Draft</Badge>}</td>
+                        <td>
+                          <form action={toggleLessonPublishAction}>
+                            <input type="hidden" name="id" value={task.lesson_id} />
+                            <input type="hidden" name="published" value={String(published)} />
+                            <Button variant={published ? "secondary" : "primary"}>{published ? "Unpublish" : "Publish"}</Button>
+                          </form>
+                        </td>
                         <td>
                           {published && studentAppUrl ? (
                             <a href={`${studentAppUrl}/tests/${task.id}`} target="_blank" rel="noreferrer">Preview as student</a>
