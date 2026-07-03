@@ -14,6 +14,7 @@ import {
   setStudentAccessStatus,
   updateStudentGroup,
   updateLesson,
+  updateSiteSettings,
   updateTasksForLessonStatus,
   updateTask,
   type TaskContent
@@ -230,6 +231,28 @@ export async function reviewSubmissionAction(formData: FormData) {
     feedback: String(formData.get("feedback") || "").trim() || null
   });
   revalidatePath("/submissions");
+  revalidatePath("/dashboard");
+}
+
+export async function updateSiteSettingsAction(formData: FormData) {
+  await requireAdminSession();
+  await updateSiteSettings(createServerSupabaseClient(), {
+    brand_name: text(formData, "brand_name"),
+    logo_text: text(formData, "logo_text"),
+    teacher_name: text(formData, "teacher_name"),
+    teacher_title: text(formData, "teacher_title"),
+    teacher_band: text(formData, "teacher_band"),
+    teacher_bio: text(formData, "teacher_bio"),
+    hero_title: text(formData, "hero_title"),
+    hero_subtitle: text(formData, "hero_subtitle"),
+    student_app_url: text(formData, "student_app_url") || null,
+    contact_email: text(formData, "contact_email") || null,
+    telegram_url: text(formData, "telegram_url") || null,
+    phone: text(formData, "phone") || null,
+    payments_enabled: formData.get("payments_enabled") === "on",
+    free_course_enabled: formData.get("free_course_enabled") === "on"
+  });
+  revalidatePath("/settings");
   revalidatePath("/dashboard");
 }
 

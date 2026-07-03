@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { PublicSiteSettings } from "@ielts-pro/shared";
 
 const menuItems = [
   { href: "/", label: "What's new", tag: "" },
@@ -9,14 +10,33 @@ const menuItems = [
   { href: "/practice-tests", label: "Practice tests", tag: "Popular" },
   { href: "/writing-practice", label: "Writing practice", tag: "New" },
   { href: "/article-lessons", label: "Article lessons", tag: "" },
-  { href: "/demo", label: "Free listening course", tag: "" },
+  { href: "/free-course", label: "Free listening course", tag: "" },
   { href: "/student-results", label: "Student results", tag: "" },
   { href: "/about", label: "About", tag: "" },
   { href: "/contact", label: "Contact", tag: "" }
 ];
 
-export function PublicShell({ children }: { children: ReactNode }) {
+export function PublicShell({ children, settings }: { children: ReactNode; settings?: PublicSiteSettings }) {
   const [open, setOpen] = useState(false);
+  const [liveSettings, setLiveSettings] = useState<PublicSiteSettings | undefined>(settings);
+  const activeSettings = liveSettings || settings;
+  const brandName = activeSettings?.brand_name || "IELTS Pro";
+  const teacherName = activeSettings?.teacher_name || "Miravzal";
+  const logoText = activeSettings?.logo_text || "IP";
+  const menu = menuItems.filter((item) => activeSettings?.free_course_enabled === false ? item.href !== "/free-course" : true);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/site-settings", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: PublicSiteSettings | null) => {
+        if (active && data) setLiveSettings(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="public-shell">
@@ -29,9 +49,9 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <Link className="public-home-icon" href="/" aria-label="Home">Home</Link>
         </div>
         <Link className="public-brand" href="/">
-          <span className="public-logo-mark">IP</span>
-          <span>IELTS Pro</span>
-          <small>Miravzal</small>
+          <span className="public-logo-mark">{logoText}</span>
+          <span>{brandName}</span>
+          <small>{teacherName}</small>
         </Link>
         <div className="public-topbar-side public-topbar-right">
           <Link className="public-signin" href="/login">Student login</Link>
@@ -51,7 +71,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
               <button className="public-close" type="button" onClick={() => setOpen(false)} aria-label="Close menu">Close</button>
             </div>
             <nav className="public-drawer-nav">
-              {menuItems.map((item, index) => (
+              {menu.map((item, index) => (
                 <Link href={item.href} key={item.href} onClick={() => setOpen(false)}>
                   <span>{item.label}</span>
                   {item.tag ? <small>{item.tag}</small> : null}
@@ -69,17 +89,17 @@ export function PublicShell({ children }: { children: ReactNode }) {
       <footer className="public-footer">
         <div>
           <Link className="public-brand public-brand-footer" href="/">
-            <span className="public-logo-mark">IP</span>
-            <span>IELTS Pro</span>
+            <span className="public-logo-mark">{logoText}</span>
+            <span>{brandName}</span>
           </Link>
-          <p>Teacher-led IELTS practice, lessons, and student progress in one workspace.</p>
+          <p>Teacher-led IELTS practice, lessons, and student progress with {teacherName}.</p>
         </div>
         <nav>
           <strong>Practice</strong>
           <Link href="/practice-tests">Practice tests</Link>
           <Link href="/writing-practice">Writing practice</Link>
           <Link href="/article-lessons">Article lessons</Link>
-          <Link href="/demo">Listening course</Link>
+          <Link href="/free-course">Listening course</Link>
         </nav>
         <nav>
           <strong>Information</strong>

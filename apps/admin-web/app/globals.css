@@ -845,12 +845,177 @@ tr:last-child td { border-bottom: 0; }
   border-radius: 8px;
   width: max-content;
 }
+.settings-hero {
+  align-items: stretch;
+}
+.settings-live-card {
+  min-width: 260px;
+  border: 1px solid #c8ddf8;
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+}
+.settings-live-card span,
+.settings-form label > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.settings-live-card strong {
+  font-size: 28px;
+  line-height: 1;
+}
+.settings-live-card small { color: var(--muted); }
+.settings-stats .stat-card:nth-child(2) { border-top-color: #f59e0b; }
+.settings-stats .stat-card:nth-child(3) { border-top-color: var(--good); }
+.settings-stats .stat-card:nth-child(4) { border-top-color: var(--violet); }
+.settings-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.settings-editor,
+.settings-preview {
+  min-width: 0;
+}
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.settings-form label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.settings-short-textarea {
+  min-height: 82px;
+}
+.settings-toggle-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.settings-toggle {
+  min-height: 86px;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px !important;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 13px;
+}
+.settings-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+.settings-toggle strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.settings-toggle small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+.settings-preview {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 14px;
+}
+.settings-preview h2 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1;
+}
+.settings-preview > p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.preview-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.preview-brand-row span {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #28a9e8);
+  font-size: 12px;
+  font-weight: 950;
+}
+.preview-brand-row strong {
+  font-size: 20px;
+}
+.preview-teacher-card {
+  border: 1px solid #c8ddf8;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fbff, #fff);
+  padding: 15px;
+  display: grid;
+  gap: 5px;
+}
+.preview-teacher-card small {
+  color: var(--accent);
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.preview-teacher-card strong {
+  font-size: 23px;
+}
+.preview-teacher-card span {
+  color: var(--muted);
+  font-weight: 850;
+}
+.preview-teacher-card p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.settings-check-list {
+  display: grid;
+  gap: 8px;
+}
+.settings-check-list span {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 10px 11px;
+  color: var(--muted);
+  font-weight: 850;
+}
+.settings-check-list .ok {
+  color: #06764f;
+  border-color: #b9efd9;
+  background: #e8faf3;
+}
+.settings-check-list .warn {
+  color: #9a5d00;
+  border-color: #f6d48d;
+  background: #fff7e6;
+}
 
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; }
-  .stats-grid, .panel-grid, .two-col, .content-command, .command-cards, .content-workspace, .quick-lesson-card, .quick-lesson-form, .studio-hero, .studio-skill-grid, .builder-layout, .publish-card, .student-access-grid, .review-workspace, .test-builder-grid, .builder-section, .mode-grid, .builder-fields-grid, .builder-fields-grid.two-fields, .file-upload-card, .parsed-summary-grid, .studio-columns, .group-board, .lesson-builder-form, .assignment-row, .attention-row, .analytics-item { grid-template-columns: 1fr; }
-  .builder-aside, .wizard-side, .quick-lesson-panel { position: static; }
+  .stats-grid, .panel-grid, .two-col, .content-command, .command-cards, .content-workspace, .quick-lesson-card, .quick-lesson-form, .studio-hero, .studio-skill-grid, .builder-layout, .publish-card, .student-access-grid, .review-workspace, .test-builder-grid, .builder-section, .mode-grid, .builder-fields-grid, .builder-fields-grid.two-fields, .file-upload-card, .parsed-summary-grid, .studio-columns, .group-board, .lesson-builder-form, .assignment-row, .attention-row, .analytics-item, .settings-workspace, .settings-form, .settings-toggle-row { grid-template-columns: 1fr; }
+  .builder-aside, .wizard-side, .quick-lesson-panel, .settings-preview { position: static; }
   .wizard-steps { grid-template-columns: 1fr; }
   .wizard-steps span { border-right: 0; border-bottom: 1px solid var(--line); }
   .admin-topbar { position: static; padding: 14px 18px; align-items: flex-start; }

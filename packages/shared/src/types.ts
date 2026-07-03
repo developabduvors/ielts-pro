@@ -154,3 +154,22 @@ export type StudentSession = Pick<Student, "id" | "name" | "student_code" | "gro
   session_token: string;
 };
 export type AdminSession = { id: string; email: string };
+
+export type PublicSiteSettings = {
+  id: string;
+  brand_name: string;
+  logo_text: string;
+  teacher_name: string;
+  teacher_title: string;
+  teacher_band: string;
+  teacher_bio: string;
+  hero_title: string;
+  hero_subtitle: string;
+  student_app_url: string | null;
+  contact_email: string | null;
+  telegram_url: string | null;
+  phone: string | null;
+  payments_enabled: boolean;
+  free_course_enabled: boolean;
+  updated_at: string | null;
+};

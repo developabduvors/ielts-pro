@@ -1,19 +1,28 @@
 import Link from "next/link";
-import { siteContent } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getDefaultSiteSettings, getSiteSettings, siteContent } from "@ielts-pro/shared";
 import { PublicShell } from "./components/PublicShell";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+async function loadSettings() {
+  try {
+    return await getSiteSettings(createServerSupabaseClient());
+  } catch {
+    return getDefaultSiteSettings();
+  }
+}
+
+export default async function HomePage() {
+  const settings = await loadSettings();
+
   return (
-    <PublicShell>
+    <PublicShell settings={settings}>
       <main className="public-main">
         <section className="home-hero">
           <div className="home-hero-copy">
             <p className="public-kicker">Teacher-guided IELTS practice</p>
-            <h1>Structured IELTS lessons, tests, and progress for Miravzal students.</h1>
-            <p>
-              A clean practice workspace for reading, listening, writing, full tests, and reviewed student results.
-              Students enter through a private access ID issued by the teacher.
-            </p>
+            <h1>{settings.hero_title}</h1>
+            <p>{settings.hero_subtitle}</p>
             <div className="home-hero-actions">
               <Link className="public-primary" href="/practice-tests">Choose a skill</Link>
               <Link className="public-secondary" href="/login">Student login</Link>
@@ -21,7 +30,7 @@ export default function HomePage() {
           </div>
           <div className="home-hero-board" aria-label="IELTS practice overview">
             <div className="board-top">
-              <span>IELTS Pro workspace</span>
+              <span>{settings.brand_name} workspace</span>
               <strong>Live</strong>
             </div>
             <div className="board-split">

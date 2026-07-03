@@ -1,3 +1,5 @@
+import type { PublicSiteSettings } from "./types.js";
+
 export const siteContent = {
   brand: "IELTS Pro",
   teacher: "Miravzal",
@@ -24,7 +26,7 @@ export const siteContent = {
       label: "Course",
       tone: "listening",
       description: "Short listening lessons for map, note, and section practice.",
-      href: "/demo",
+      href: "/free-course",
       action: "Start learning"
     }
   ],
@@ -81,7 +83,7 @@ export const siteContent = {
       title: "Speaking",
       duration: "11-14 min",
       detail: "Part 1, 2, and 3 speaking practice structure",
-      countLabel: "Coming soon",
+      countLabel: "Guide mode",
       tone: "speaking"
     }
   ],
@@ -231,6 +233,25 @@ export const siteContent = {
 
 export type PublicArticle = (typeof siteContent.articles)[number];
 export type PublicWritingPrompt = (typeof siteContent.writingPrompts)[number];
+
+export const defaultPublicSiteSettings: PublicSiteSettings = {
+  id: "main",
+  brand_name: siteContent.brand,
+  logo_text: "IP",
+  teacher_name: siteContent.teacher,
+  teacher_title: "IELTS mentor",
+  teacher_band: "Band-focused coaching",
+  teacher_bio: "Teacher-led IELTS preparation with private student access, structured lessons, and reviewed progress.",
+  hero_title: "Structured IELTS lessons, tests, and progress for Miravzal students.",
+  hero_subtitle: "A clean practice workspace for reading, listening, writing, full tests, and reviewed student results.",
+  student_app_url: null,
+  contact_email: null,
+  telegram_url: null,
+  phone: null,
+  payments_enabled: false,
+  free_course_enabled: true,
+  updated_at: null
+};
 
 export function getArticle(slug: string) {
   return siteContent.articles.find((article) => article.slug === slug) || null;

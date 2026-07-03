@@ -1,11 +1,43 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Group, Lesson, NewTaskInput, Student, StudentDeviceSession, Submission, Task } from "./types.js";
+import { defaultPublicSiteSettings } from "./site-content.js";
+import type { Group, Lesson, NewTaskInput, PublicSiteSettings, Student, StudentDeviceSession, Submission, Task } from "./types.js";
 
 const DEFAULT_GROUPS = [
   { name: "Introduction group", slug: "introduction", order: 1 },
   { name: "Graduation group", slug: "graduation", order: 2 },
   { name: "Pre-ielts group", slug: "pre-ielts", order: 3 }
 ] as const;
+
+type PublicSiteSettingsInput = Partial<Omit<PublicSiteSettings, "id" | "updated_at">>;
+
+export function getDefaultSiteSettings(): PublicSiteSettings {
+  return { ...defaultPublicSiteSettings };
+}
+
+export async function getSiteSettings(supabase: SupabaseClient): Promise<PublicSiteSettings> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("id", "main")
+    .maybeSingle();
+  if (!error) return normalizeSiteSettings(data);
+  if (isMissingTableError(error) || isMissingRelationOrColumnError(error)) return getDefaultSiteSettings();
+  throw error;
+}
+
+export async function updateSiteSettings(supabase: SupabaseClient, input: PublicSiteSettingsInput): Promise<PublicSiteSettings> {
+  const payload = normalizeSiteSettingsInput(input);
+  const { data, error } = await supabase
+    .from("site_settings")
+    .upsert({ id: "main", ...payload, updated_at: new Date().toISOString() }, { onConflict: "id" })
+    .select("*")
+    .single();
+  if (!error) return normalizeSiteSettings(data);
+  if (isMissingTableError(error) || isMissingRelationOrColumnError(error)) {
+    throw new Error("Site settings table is missing. Apply the latest Supabase migration, then save settings again.");
+  }
+  throw error;
+}
 
 export async function getPublishedLessons(supabase: SupabaseClient) {
   const { data, error } = await supabase
@@ -622,6 +654,59 @@ function isMissingTableError(error: unknown) {
   const message = String((error as { message?: string })?.message || "");
   const code = String((error as { code?: string })?.code || "");
   return code === "42P01" || code === "PGRST205" || message.includes("Could not find the table");
+}
+
+function normalizeSiteSettings(row: unknown): PublicSiteSettings {
+  const source = (row || {}) as Partial<Record<keyof PublicSiteSettings, unknown>>;
+  const defaults = getDefaultSiteSettings();
+  return {
+    id: cleanText(source.id, defaults.id),
+    brand_name: cleanText(source.brand_name, defaults.brand_name),
+    logo_text: cleanText(source.logo_text, defaults.logo_text).slice(0, 4) || defaults.logo_text,
+    teacher_name: cleanText(source.teacher_name, defaults.teacher_name),
+    teacher_title: cleanText(source.teacher_title, defaults.teacher_title),
+    teacher_band: cleanText(source.teacher_band, defaults.teacher_band),
+    teacher_bio: cleanText(source.teacher_bio, defaults.teacher_bio),
+    hero_title: cleanText(source.hero_title, defaults.hero_title),
+    hero_subtitle: cleanText(source.hero_subtitle, defaults.hero_subtitle),
+    student_app_url: cleanNullableText(source.student_app_url),
+    contact_email: cleanNullableText(source.contact_email),
+    telegram_url: cleanNullableText(source.telegram_url),
+    phone: cleanNullableText(source.phone),
+    payments_enabled: source.payments_enabled === true,
+    free_course_enabled: source.free_course_enabled !== false,
+    updated_at: cleanNullableText(source.updated_at)
+  };
+}
+
+function normalizeSiteSettingsInput(input: PublicSiteSettingsInput) {
+  const defaults = getDefaultSiteSettings();
+  return {
+    brand_name: cleanText(input.brand_name, defaults.brand_name),
+    logo_text: cleanText(input.logo_text, defaults.logo_text).slice(0, 4) || defaults.logo_text,
+    teacher_name: cleanText(input.teacher_name, defaults.teacher_name),
+    teacher_title: cleanText(input.teacher_title, defaults.teacher_title),
+    teacher_band: cleanText(input.teacher_band, defaults.teacher_band),
+    teacher_bio: cleanText(input.teacher_bio, defaults.teacher_bio),
+    hero_title: cleanText(input.hero_title, defaults.hero_title),
+    hero_subtitle: cleanText(input.hero_subtitle, defaults.hero_subtitle),
+    student_app_url: cleanNullableText(input.student_app_url),
+    contact_email: cleanNullableText(input.contact_email),
+    telegram_url: cleanNullableText(input.telegram_url),
+    phone: cleanNullableText(input.phone),
+    payments_enabled: input.payments_enabled === true,
+    free_course_enabled: input.free_course_enabled !== false
+  };
+}
+
+function cleanText(value: unknown, fallback: string) {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function cleanNullableText(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
 }
 
 function slugify(value: string) {
