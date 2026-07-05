@@ -2,13 +2,18 @@
 
 Create two Vercel projects from the same GitHub repository.
 
+Each project uses the app folder as its **Root Directory**. Vercel auto-detects Next.js and
+runs a plain `next build` — the `@ielts-pro/shared` and `@ielts-pro/ui` packages are compiled
+from source via `transpilePackages`, so there is no custom build script.
+
 ## Student App
 
 - Project name: `ielts-pro-student`
-- Root directory: repository root (`.`)
-- Install command: `npm ci`
-- Build command: `npm run build:vercel`
-- Output directory: `.next`
+- Root directory: `apps/student-web`
+- Framework preset: Next.js (auto-detected)
+- Install command: `npm ci` (runs at repo root; Vercel detects the npm workspace)
+- Build command: default (`next build`)
+- Output directory: `.next` (default)
 
 Environment variables:
 
@@ -24,10 +29,11 @@ Suggested production domain:
 ## Admin App
 
 - Project name: `ielts-pro-admin`
-- Root directory: repository root (`.`)
-- Install command: `npm ci`
-- Build command: `npm run build:vercel`
-- Output directory: `.next`
+- Root directory: `apps/admin-web`
+- Framework preset: Next.js (auto-detected)
+- Install command: `npm ci` (runs at repo root; Vercel detects the npm workspace)
+- Build command: default (`next build`)
+- Output directory: `.next` (default)
 
 Environment variables:
 
@@ -36,7 +42,6 @@ Environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY` - server-only, needed for admin data management
 - `ADMIN_SESSION_SECRET` - strong random string
 - `ADMIN_EMAILS` - comma-separated admin emails, e.g. `miravzalsalakhiddinov@gmail.com`
-- `LMS_APP_TARGET` - set to `admin`
 
 Suggested production domain:
 

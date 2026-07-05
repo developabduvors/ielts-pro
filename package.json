@@ -6,14 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:student": "cd apps/student-web && node ../../node_modules/next/dist/bin/next dev --port 3000",
-    "dev:admin": "cd apps/admin-web && node ../../node_modules/next/dist/bin/next dev --port 3001",
-    "build": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/student-web && node ../../node_modules/next/dist/bin/next build --webpack && cd ../admin-web && node ../../node_modules/next/dist/bin/next build --webpack",
-    "build:student": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/student-web && node ../../node_modules/next/dist/bin/next build --webpack",
-    "build:admin": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && cd apps/admin-web && node ../../node_modules/next/dist/bin/next build --webpack",
-    "build:vercel": "node scripts/vercel-build.js",
+    "dev:student": "npm run dev --workspace student-web",
+    "dev:admin": "npm run dev --workspace admin-web",
+    "build": "npm run build:student && npm run build:admin",
+    "build:student": "npm run build --workspace student-web",
+    "build:admin": "npm run build --workspace admin-web",
     "test:smoke": "node scripts/qa-smoke.mjs",
-    "typecheck": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && npm --workspaces run typecheck --if-present",
+    "typecheck": "npm --workspaces run typecheck --if-present",
     "lint": "npm --workspaces run lint --if-present"
   },
   "engines": {

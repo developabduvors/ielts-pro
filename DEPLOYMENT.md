@@ -2,12 +2,17 @@
 
 The repository supports two Vercel projects from the same `main` branch.
 
+Each Vercel project points at one app folder via **Root Directory**. Vercel auto-detects
+Next.js there and runs a plain `next build`; the shared/ui packages are compiled from source
+by `transpilePackages`, so no custom build script is needed.
+
 ## Student Project
 
-- Root directory: `./`
-- Install command: `npm ci`
-- Build command: `npm run build:vercel`
-- Output directory: `.next`
+- Root directory: `apps/student-web`
+- Framework preset: Next.js (auto-detected)
+- Install command: `npm ci` (run at repo root — Vercel detects the workspace automatically)
+- Build command: default (`next build`)
+- Output directory: `.next` (default)
 
 Environment variables:
 
@@ -16,22 +21,20 @@ Environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `STUDENT_SESSION_SECRET`
 
-Do not set `LMS_APP_TARGET` for the student project. It defaults to `student`.
-
 Before enabling the new private access login in production, apply:
 
 - `supabase/migrations/20260701183000_student_access_device_sessions.sql`
 
 ## Admin Project
 
-- Root directory: `./`
-- Install command: `npm ci`
-- Build command: `npm run build:vercel`
-- Output directory: `.next`
+- Root directory: `apps/admin-web`
+- Framework preset: Next.js (auto-detected)
+- Install command: `npm ci` (run at repo root)
+- Build command: default (`next build`)
+- Output directory: `.next` (default)
 
 Environment variables:
 
-- `LMS_APP_TARGET=admin`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
