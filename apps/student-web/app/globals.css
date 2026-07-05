@@ -473,6 +473,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   font-size: 12px;
   font-weight: 900;
 }
+.exam-status-strip .test-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+.test-timer strong {
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+.test-timer.is-warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+.test-timer.is-warning strong { color: #ea580c; }
 .passage, .question-panel, .test-aside, .submitted-panel { padding: 20px; }
 .passage { line-height: 1.75; max-height: calc(100vh - 150px); overflow: auto; }
 .passage h2, .question-panel h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: 0; }
@@ -2156,6 +2172,15 @@ body {
   background: #fff;
   color: var(--ink);
 }
+
+.exam-status-strip .test-timer.is-warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.exam-status-strip .test-timer strong { color: var(--brand); }
+.exam-status-strip .test-timer.is-warning strong { color: #ea580c; }
 
 .passage-content {
   color: var(--ink);

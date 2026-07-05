@@ -6,6 +6,7 @@ import { requireStudentSession } from "@/lib/session";
 import { submitTaskAttempt } from "../../actions/attempts";
 import { StudentShell } from "../../components/StudentShell";
 import { WritingAnswerBox } from "../../components/WritingAnswerBox";
+import { TestTimer } from "./TestTimer";
 
 
 
@@ -96,7 +97,7 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
   const audioUrl = getTaskAudioUrl(content, task);
   const questionCount = questions.length;
   const isFullTest = task.skill === "full_test";
-  const timeLabel = content.time_limit_minutes || content.duration_minutes ? `${content.time_limit_minutes || content.duration_minutes} min` : "Study mode";
+  const timeLimitMinutes = Number(content.time_limit_minutes || content.duration_minutes || defaultTimeForSkill(task.skill));
 
   return (
     <StudentShell name={session.name}>
@@ -120,11 +121,11 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
             <Link href="/progress" className="btn btn-primary">View progress</Link>
           </Card>
         ) : (
-          <form action={submitTaskAttempt} className="exam-layout">
+          <form action={submitTaskAttempt} className="exam-layout" id="test-answer-form" data-testid="test-answer-form">
             <input type="hidden" name="taskId" value={task.id} />
             <div className="exam-status-strip">
               <span>{questionCount || (task.skill === "writing" ? 1 : 0)} tasks</span>
-              <span>{timeLabel}</span>
+              <TestTimer minutes={timeLimitMinutes} />
               <span>{task.skill === "writing" ? "Teacher reviewed" : "Auto checked"}</span>
             </div>
             <section className="card passage">
@@ -143,7 +144,7 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
                   <h2>Listen and answer</h2>
                   <p>{content.instructions || "Listen and answer the questions."}</p>
                   {audioUrl ? (
-                    <audio controls src={audioUrl} className="audio-player" />
+                    <audio controls src={audioUrl} className="audio-player" data-testid="audio-player" />
                   ) : (
                     <p className="form-error">No listening audio was found in this import. Ask the teacher to attach an audio URL before publishing it as Listening.</p>
                   )}
@@ -162,7 +163,7 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
                   <p className="eyebrow">Answer sheet</p>
                 <h2>{task.skill === "writing" ? "Your response" : `${questionCount} questions`}</h2>
                 </div>
-                {content.time_limit_minutes ? <Badge tone="warning">{content.time_limit_minutes} min</Badge> : null}
+                {timeLimitMinutes ? <Badge tone="warning">{timeLimitMinutes} min</Badge> : null}
               </div>
               {task.skill === "writing" ? (
                 <WritingAnswerBox name="writing_answer" label="Your response" placeholder="Write your IELTS response here..." minWords={content.min_words} required />
@@ -179,7 +180,7 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
                   ) : null}
                 </>
               )}
-              <Button type="submit">Submit answers</Button>
+              <Button type="submit" data-testid="submit-answers-button">Submit answers</Button>
             </section>
             <aside className="card test-aside">
               <h3>Question navigator</h3>
@@ -214,7 +215,7 @@ function FullTestBrief({ content, task }: { content: TaskContent; task: Task }) 
         <section>
           <Badge tone="listening">Listening</Badge>
           <h3>{listening?.title || "Listening section"}</h3>
-          {audioUrl ? <audio controls src={audioUrl} className="audio-player" /> : <p className="form-error">No listening audio was found in this import.</p>}
+          {audioUrl ? <audio controls src={audioUrl} className="audio-player" data-testid="audio-player" /> : <p className="form-error">No listening audio was found in this import.</p>}
         </section>
         <section>
           <Badge tone="writing">Writing</Badge>
@@ -228,6 +229,14 @@ function FullTestBrief({ content, task }: { content: TaskContent; task: Task }) 
 
 function writingPrompt(content: TaskContent) {
   return content.prompt || content.sections?.some((section) => section.skill === "writing" && section.prompt);
+}
+
+function defaultTimeForSkill(skill: string) {
+  if (skill === "listening") return 30;
+  if (skill === "reading") return 60;
+  if (skill === "writing") return 60;
+  if (skill === "full_test") return 180;
+  return 60;
 }
 
 function QuestionInput({ question, index }: { question: Question; index: number }) {

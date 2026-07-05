@@ -520,6 +520,15 @@ tr:last-child td { border-bottom: 0; }
 .hidden-file-input {
   display: none;
 }
+.hidden-html-source {
+  height: 1px;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: auto;
+  width: 1px;
+}
 .builder-upload-dropzone {
   display: grid;
   justify-items: center;
@@ -594,6 +603,7 @@ tr:last-child td { border-bottom: 0; }
 }
 .upload-validation-neutral { background: #f8fbff; color: var(--muted); }
 .upload-validation-success { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.upload-validation-warning { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
 .upload-validation-error { background: #fff1f2; border-color: #fecdd3; color: #dc2626; }
 .parsed-preview-panel {
   border: 1px solid var(--line);
@@ -609,6 +619,7 @@ tr:last-child td { border-bottom: 0; }
 .parsed-preview-panel > small { color: var(--muted); font-weight: 800; line-height: 1.45; }
 .parsed-preview-panel.has-error { background: #fff1f2; border-color: #fecdd3; color: #991b1b; }
 .parsed-preview-panel.has-preview { background: #fff; align-content: start; }
+.parsed-preview-panel.is-stale { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
 .parsed-preview-head {
   display: flex;
   align-items: flex-start;

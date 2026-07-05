@@ -54,6 +54,7 @@ export function TestBuilderWizard() {
   const [clientError, setClientError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [contentName, setContentName] = useState("");
+  const [rawHtml, setRawHtml] = useState("");
 
   const questionTypes = useMemo(() => {
     if (skill === "listening") return listeningTypes;
@@ -62,14 +63,21 @@ export function TestBuilderWizard() {
   }, [skill]);
 
   const validFile = selectedFile ? isHtmlFile(selectedFile) : false;
-  const canSubmit = Boolean(validFile && !clientError);
-  const uploadStatus = getUploadStatus(selectedFile, clientError, previewState);
+  const previewMatchesCurrentFile =
+    previewState.status === "success" &&
+    !!selectedFile &&
+    previewState.data?.fileName === selectedFile.name &&
+    Number(previewState.data?.fileSize || 0) === Number(selectedFile.size || 0);
+  const fileReady = Boolean(validFile && rawHtml.trim());
+  const canPreview = Boolean(fileReady && !clientError);
+  const canSave = Boolean(canPreview && previewMatchesCurrentFile && !previewPending);
+  const uploadStatus = getUploadStatus(selectedFile, clientError, previewState, previewMatchesCurrentFile);
 
   useEffect(() => {
-    if (previewState.status === "success" && previewState.data?.title && !contentName) {
+    if (previewMatchesCurrentFile && previewState.data?.title && !contentName) {
       setContentName(previewState.data.title);
     }
-  }, [contentName, previewState]);
+  }, [contentName, previewMatchesCurrentFile, previewState.data?.title]);
 
   useEffect(() => {
     if (skill === "auto") setStructure("auto_detect");
@@ -79,23 +87,32 @@ export function TestBuilderWizard() {
     if (skill === "reading") setStructure("reading_passage_1");
   }, [skill]);
 
-  function handleFile(file: File | null) {
+  async function handleFile(file: File | null) {
     if (!file) return;
     const validationError = validateFile(file);
     setSelectedFile(file);
     setClientError(validationError);
+    setRawHtml("");
     if (validationError && fileInputRef.current) fileInputRef.current.value = "";
     if (!validationError) assignFile(fileInputRef.current, file);
+    if (validationError) return;
+
+    try {
+      setRawHtml(await file.text());
+    } catch {
+      setClientError("Could not read this HTML file. Choose the file again and try preview parse.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
-    handleFile(event.target.files?.[0] || null);
+    void handleFile(event.target.files?.[0] || null);
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setIsDragging(false);
-    handleFile(event.dataTransfer.files?.[0] || null);
+    void handleFile(event.dataTransfer.files?.[0] || null);
   }
 
   function handleDropzoneKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -108,6 +125,7 @@ export function TestBuilderWizard() {
     if (fileInputRef.current) fileInputRef.current.value = "";
     setSelectedFile(null);
     setClientError("");
+    setRawHtml("");
   }
 
   return (
@@ -228,14 +246,24 @@ export function TestBuilderWizard() {
               <input
                 ref={fileInputRef}
                 className="hidden-file-input"
+                data-testid="html-file-input"
                 name="html_file"
                 type="file"
                 accept=".html,.htm,text/html"
                 onChange={handleInputChange}
-                required
                 tabIndex={-1}
                 aria-hidden="true"
               />
+              <textarea
+                className="hidden-html-source"
+                name="html_text"
+                value={rawHtml}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              <input type="hidden" name="html_text_file_name" value={selectedFile?.name || ""} />
+              <input type="hidden" name="html_text_file_size" value={selectedFile?.size || 0} />
               <span className="upload-icon" aria-hidden="true">HTML</span>
               <strong>Drop your HTML file here</strong>
               <span className="upload-choose-text">or choose file</span>
@@ -276,7 +304,12 @@ export function TestBuilderWizard() {
             <h2>Parsed preview</h2>
             <p className="muted">Run parser before saving to confirm title, skill, questions, answers, and audio detection.</p>
           </div>
-          <ParsedPreview previewState={previewState} previewPending={previewPending} />
+          <ParsedPreview
+            previewState={previewState}
+            previewPending={previewPending}
+            selectedFile={selectedFile}
+            previewMatchesCurrentFile={previewMatchesCurrentFile}
+          />
         </section>
 
         <section className="builder-section save-draft-section">
@@ -291,14 +324,15 @@ export function TestBuilderWizard() {
               <Textarea name="content_description" placeholder="Optional internal note for Content Studio" />
             </label>
             <div className="builder-action-row">
-              <Button type="submit" variant="secondary" formAction={previewAction} disabled={!canSubmit || previewPending}>
+              <Button type="submit" variant="secondary" formAction={previewAction} disabled={!canPreview || previewPending} data-testid="preview-parse-button">
                 {previewPending ? "Parsing..." : "Preview parse"}
               </Button>
-              <Button type="submit" disabled={!canSubmit}>
+              <Button type="submit" disabled={!canSave} data-testid="save-content-button">
                 Save to Content Studio
               </Button>
             </div>
-            {!canSubmit ? <small className="muted">Choose a valid .html or .htm file before previewing or saving.</small> : null}
+            {!canPreview ? <small className="muted">Choose a valid .html or .htm file before previewing or saving.</small> : null}
+            {canPreview && !canSave ? <small className="muted">Preview the current HTML file before saving so Content Studio gets the exact parsed questions, answers, and audio.</small> : null}
           </div>
         </section>
       </form>
@@ -306,10 +340,20 @@ export function TestBuilderWizard() {
   );
 }
 
-function ParsedPreview({ previewState, previewPending }: { previewState: HtmlPreviewState; previewPending: boolean }) {
+function ParsedPreview({
+  previewState,
+  previewPending,
+  selectedFile,
+  previewMatchesCurrentFile
+}: {
+  previewState: HtmlPreviewState;
+  previewPending: boolean;
+  selectedFile: File | null;
+  previewMatchesCurrentFile: boolean;
+}) {
   if (previewPending) {
     return (
-      <div className="parsed-preview-panel is-loading">
+      <div className="parsed-preview-panel is-loading" data-testid="parsed-preview-loading">
         <span className="preview-spinner" aria-hidden="true" />
         <strong>Parsing uploaded HTML...</strong>
         <small>Checking structure, questions, answers, audio, and safe HTML.</small>
@@ -319,25 +363,34 @@ function ParsedPreview({ previewState, previewPending }: { previewState: HtmlPre
 
   if (previewState.status === "error") {
     return (
-      <div className="parsed-preview-panel has-error" role="alert">
+      <div className="parsed-preview-panel has-error" role="alert" data-testid="parsed-preview-error">
         <strong>Parser could not read this file</strong>
         <small>{previewState.error}</small>
       </div>
     );
   }
 
-  if (previewState.status !== "success" || !previewState.data) {
+  if (!selectedFile || previewState.status !== "success" || !previewState.data) {
     return (
-      <div className="parsed-preview-panel">
+      <div className="parsed-preview-panel" data-testid="parsed-preview-empty">
         <strong>No parsed preview yet</strong>
         <small>Upload an HTML file and click Preview parse. This does not save anything.</small>
       </div>
     );
   }
 
+  if (!previewMatchesCurrentFile) {
+    return (
+      <div className="parsed-preview-panel is-stale" role="alert" data-testid="parsed-preview-stale">
+        <strong>Preview belongs to another file</strong>
+        <small>Current file: {selectedFile.name}. Click Preview parse again before saving.</small>
+      </div>
+    );
+  }
+
   const data = previewState.data;
   return (
-    <div className="parsed-preview-panel has-preview">
+    <div className="parsed-preview-panel has-preview" data-testid="parsed-preview-success">
       <div className="parsed-preview-head">
         <div>
           <Badge tone="success">Parser ready</Badge>
@@ -408,10 +461,11 @@ function labelFor(skill: string) {
   return skill;
 }
 
-function getUploadStatus(selectedFile: File | null, clientError: string, previewState: HtmlPreviewState) {
+function getUploadStatus(selectedFile: File | null, clientError: string, previewState: HtmlPreviewState, previewMatchesCurrentFile: boolean) {
   if (clientError) return { tone: "error", message: clientError };
   if (!selectedFile) return { tone: "neutral", message: "No file selected yet." };
   if (previewState.status === "error") return { tone: "error", message: previewState.error || "Parser failed." };
-  if (previewState.status === "success") return { tone: "success", message: "HTML parsed successfully. You can save it to Content Studio." };
-  return { tone: "success", message: "Valid HTML file selected. Preview parse or save it." };
+  if (previewState.status === "success" && previewMatchesCurrentFile) return { tone: "success", message: "HTML parsed successfully. You can save it to Content Studio." };
+  if (previewState.status === "success" && !previewMatchesCurrentFile) return { tone: "warning", message: "Selected file changed after preview. Parse this file before saving." };
+  return { tone: "success", message: "Valid HTML file selected. Preview parse it before saving." };
 }
