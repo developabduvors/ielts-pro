@@ -50,6 +50,11 @@ export async function getAdminSession() {
   }
 }
 
+export async function hasAdminSessionCookie() {
+  const jar = await cookies();
+  return Boolean(jar.get(COOKIE_NAME)?.value);
+}
+
 export async function requireAdminSession() {
   const session = await getAdminSession();
   if (!session) redirect("/");

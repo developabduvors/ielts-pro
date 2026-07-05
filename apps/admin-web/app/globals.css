@@ -90,6 +90,25 @@ tr:last-child td { border-bottom: 0; }
 .form-stack { display: grid; gap: 14px; margin-top: 18px; }
 .form-stack label { display: grid; gap: 7px; font-size: 13px; font-weight: 850; }
 .form-error { color: var(--danger); background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin: 0; }
+.admin-recovery {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(20, 120, 200, .18), transparent 30%),
+    linear-gradient(135deg, #f7fbff, #e9f1fb);
+}
+.admin-recovery-card {
+  width: min(560px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: 30px;
+}
+.admin-recovery-card h1 { margin: 4px 0 10px; font-size: 36px; line-height: 1; letter-spacing: 0; }
+.admin-recovery-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 278px minmax(0, 1fr); }
 .sidebar {

@@ -10,7 +10,13 @@ export async function adminLogin(_: { error?: string } | undefined, formData: Fo
   if (!email || !password) return { error: "Enter admin email and password." };
   if (!isAllowedAdmin(email)) return { error: "This email is not configured as an admin." };
 
-  const supabase = createAnonSupabaseClient();
+  let supabase: ReturnType<typeof createAnonSupabaseClient>;
+  try {
+    supabase = createAnonSupabaseClient();
+  } catch {
+    return { error: "Admin Supabase config is missing. Add the Supabase URL and anon key, then redeploy." };
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user?.email) return { error: "Incorrect email or password." };
   if (!isAllowedAdmin(data.user.email)) return { error: "This user is not allowed to access the admin workspace." };
