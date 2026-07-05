@@ -2045,6 +2045,39 @@ body {
 .test-page {
   color: var(--ink);
 }
+.test-page.html-test {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 57px);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.html-test .exam-topline {
+  padding: 12px 20px;
+  margin: 0;
+}
+.html-test-viewer-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+.html-test-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
+.topline-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.submission-score {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+}
 
 .hero-card,
 .practice-hero,

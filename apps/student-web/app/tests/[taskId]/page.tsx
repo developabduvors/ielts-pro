@@ -6,7 +6,8 @@ import { requireStudentSession } from "@/lib/session";
 import { submitTaskAttempt } from "../../actions/attempts";
 import { StudentShell } from "../../components/StudentShell";
 import { WritingAnswerBox } from "../../components/WritingAnswerBox";
-import { HtmlTestStart } from "../../components/HtmlTestStart";
+
+
 
 export default async function TestPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params;
@@ -20,33 +21,70 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
   ]);
   if (!task) notFound();
 
-  if (task.source_type === "html") {
+  if (task.html_path) {
+    const download = await supabase.storage.from("html-tests").download(task.html_path);
+    let htmlTest: string | null = null;
+    if (download.data) {
+      const rawHtml = await download.data.text();
+      const bridge = `<script>
+(function(){
+  var TASK_ID = ${JSON.stringify(task.id)};
+  window.submitIeltsScore = async function(result){
+    result = result || {};
+    try {
+      var res = await fetch('/api/html-attempts', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ taskId: TASK_ID, score: result.score, total: result.total, answers: result.answers || null })
+      });
+      var json = await res.json();
+      if (!json || !json.ok) console.error('submitIeltsScore rejected', json);
+      return json;
+    } catch (err) {
+      console.error('submitIeltsScore failed', err);
+      return { ok: false };
+    }
+  };
+})();
+</script>`;
+      htmlTest = rawHtml.includes("</body>")
+        ? rawHtml.replace("</body>", `${bridge}</body>`)
+        : `${rawHtml}${bridge}`;
+    }
+
     return (
       <StudentShell name={session.name}>
-        <main className="test-page">
+        <main className="test-page html-test">
           <div className="exam-topline">
             <div>
               <Badge tone={toneFor(task.skill)}>{labelFor(task.skill)}</Badge>
-              <h1>{task.title}</h1>
             </div>
-            <Link href="/dashboard" className="btn btn-secondary">Exit test</Link>
+            <div className="topline-actions">
+              {existingSubmission?.score != null ? (
+                <span className="submission-score">Score: {existingSubmission.score}/{existingSubmission.total ?? "?"}</span>
+              ) : null}
+              <Link href="/dashboard" className="btn btn-secondary">Exit test</Link>
+            </div>
           </div>
           {existingSubmission ? (
-            <Card className="submitted-panel">
+            <Card className="submitted-panel" style={{ marginBottom: 12 }}>
               <div>
                 <Badge tone="success">Submitted</Badge>
-                <h2>Your last result is saved</h2>
-                <p>{existingSubmission.score != null ? `Score: ${existingSubmission.score}/${existingSubmission.total ?? "?"}` : "Result saved."}</p>
+                <span>Your result is saved.</span>
               </div>
-              <HtmlTestStart taskId={task.id} label="Retake test" />
             </Card>
+          ) : null}
+          {!htmlTest ? (
+            <div className="html-test-viewer-status">
+              <p className="form-error">Test file is missing. Ask your teacher to re-upload it.</p>
+            </div>
           ) : (
-            <Card className="panel">
-              <p className="eyebrow">Interactive test</p>
-              <h2>Ready when you are</h2>
-              <p className="muted">This test opens in a new tab. Your score is saved automatically when you finish and submit inside the test.</p>
-              <HtmlTestStart taskId={task.id} />
-            </Card>
+            <iframe
+              className="html-test-iframe"
+              srcDoc={htmlTest}
+              title={task.title}
+            />
           )}
         </main>
       </StudentShell>

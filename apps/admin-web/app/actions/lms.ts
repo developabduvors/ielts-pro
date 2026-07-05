@@ -172,7 +172,7 @@ export async function importHtmlContentAction(formData: FormData) {
   let successPath = "/full-tests/new";
   try {
     const supabase = createServerSupabaseClient();
-    const { parsed, contentName, contentDescription } = await readHtmlImportDraft(formData);
+    const { parsed, rawHtml, contentName, contentDescription } = await readHtmlImportDraft(formData);
 
     const lesson = await createLesson(supabase, {
       title: `[Draft content] ${contentName}`,
@@ -200,6 +200,14 @@ export async function importHtmlContentAction(formData: FormData) {
       audio_detected: Boolean(parsed.audioUrl),
       warnings: parsed.warnings
     });
+
+    const storagePath = `${task.id}.html`;
+    const upload = await supabase.storage
+      .from("html-tests")
+      .upload(storagePath, rawHtml, { contentType: "text/html; charset=utf-8", upsert: true });
+    if (upload.error) throw new Error(`Storage upload failed: ${upload.error.message}`);
+
+    await updateTask(supabase, task.id, { html_path: storagePath });
 
     revalidatePath("/full-tests/new");
     revalidatePath("/lessons");
@@ -367,6 +375,7 @@ type HtmlImportInput = {
 
 async function readHtmlImportDraft(formData: FormData): Promise<{
   parsed: ReturnType<typeof parseHtmlImport>;
+  rawHtml: string;
   contentName: string;
   contentDescription: string;
   fileName: string;
@@ -391,6 +400,7 @@ async function readHtmlImportDraft(formData: FormData): Promise<{
   });
   return {
     parsed,
+    rawHtml,
     contentName: text(formData, "content_name") || parsed.title,
     contentDescription: text(formData, "content_description"),
     fileName,
