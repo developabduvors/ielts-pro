@@ -172,7 +172,7 @@ export async function importHtmlContentAction(formData: FormData) {
   let successPath = "/full-tests/new";
   try {
     const supabase = createServerSupabaseClient();
-    const { parsed, contentName, contentDescription } = await readHtmlImportDraft(formData);
+    const { parsed, rawHtml, contentName, contentDescription } = await readHtmlImportDraft(formData);
 
     const lesson = await createLesson(supabase, {
       title: `[Draft content] ${contentName}`,
@@ -200,6 +200,14 @@ export async function importHtmlContentAction(formData: FormData) {
       audio_detected: Boolean(parsed.audioUrl),
       warnings: parsed.warnings
     });
+
+    const storagePath = `${task.id}.html`;
+    const upload = await supabase.storage
+      .from("html-tests")
+      .upload(storagePath, rawHtml, { contentType: "text/html; charset=utf-8", upsert: true });
+    if (upload.error) throw new Error(`Storage upload failed: ${upload.error.message}`);
+
+    await updateTask(supabase, task.id, { html_path: storagePath });
 
     revalidatePath("/full-tests/new");
     revalidatePath("/lessons");
@@ -367,19 +375,24 @@ type HtmlImportInput = {
 
 async function readHtmlImportDraft(formData: FormData): Promise<{
   parsed: ReturnType<typeof parseHtmlImport>;
+  rawHtml: string;
   contentName: string;
   contentDescription: string;
   fileName: string;
   fileSize: number;
 }> {
   const file = formData.get("html_file");
-  if (!isUpload(file)) throw new Error("Upload an .html file first.");
-  const fileName = String(file.name || "").trim();
+  const fallbackHtml = String(formData.get("html_text") || "");
+  const fallbackFileName = text(formData, "html_text_file_name");
+  const fallbackFileSize = Number(text(formData, "html_text_file_size") || 0);
+  const hasFile = isUpload(file);
+  if (!hasFile && !fallbackHtml.trim()) throw new Error("Upload an .html file first.");
+  const fileName = hasFile ? String(file.name || "").trim() : fallbackFileName || "uploaded.html";
   const lowerName = fileName.toLowerCase();
   if (!lowerName.endsWith(".html") && !lowerName.endsWith(".htm")) {
     throw new Error("Only .html and .htm files are accepted. JSON, TXT, PDF, and DOCX are not supported in Test Builder.");
   }
-  const rawHtml = await file.text();
+  const rawHtml = hasFile ? await file.text() : fallbackHtml;
   const parsed = parseHtmlImport(rawHtml, {
     fileName,
     mode: text(formData, "import_mode") || "separate_skill",
@@ -391,10 +404,11 @@ async function readHtmlImportDraft(formData: FormData): Promise<{
   });
   return {
     parsed,
+    rawHtml,
     contentName: text(formData, "content_name") || parsed.title,
     contentDescription: text(formData, "content_description"),
     fileName,
-    fileSize: Number(file.size) || rawHtml.length
+    fileSize: hasFile ? Number(file.size) || rawHtml.length : fallbackFileSize || rawHtml.length
   };
 }
 
@@ -417,11 +431,14 @@ function parseHtmlImport(rawHtml: string, input: HtmlImportInput): {
   const skill = input.mode === "full_mock" || input.skill === "full_test" ? "full_test" : inferredSkill;
   const audioUrl = input.manualAudioUrl || extractAudioUrl(sanitized);
   const title = extractHtmlTitle(sanitized) || titleFromFile(input.fileName);
-  const questions = inferQuestions(sanitized, textContent, input.questionType);
+  const answerValues = extractAnswerKeyValues(sanitized, textContent);
+  const questions = inferQuestions(sanitized, textContent, input.questionType, answerValues);
   const questionCount = countImportedQuestionUnits(questions);
-  const answerCount = countAnswerKeys(sanitized, textContent);
+  const answerCount = answerValues.length;
   const warnings: string[] = [];
   if (!questionCount && skill !== "writing") warnings.push("No objective question inputs were detected. Use Content Studio preview before publishing.");
+  if (questionCount && !answerCount && skill !== "writing") warnings.push("No answer key was detected. Students can open this test, but auto-scoring will need teacher review.");
+  if (questionCount && answerCount && answerCount < questionCount && skill !== "writing") warnings.push(`Only ${answerCount} answer key value(s) were detected for ${questionCount} question(s). Check the imported answer key before publishing.`);
   if (skill === "listening" && !audioUrl) warnings.push("No audio URL was detected. Add audio metadata before assigning this listening test.");
   if (skill === "writing" && textContent.length < 40) warnings.push("Writing prompt is very short. Check the preview before publishing.");
   const subtype = input.subtype || defaultSubtype(skill, input.structure);
@@ -511,28 +528,109 @@ function extractAudioUrl(html: string) {
   return direct ? direct.trim() : "";
 }
 
-function inferQuestions(html: string, textValue: string, questionType: string): NonNullable<TaskContent["questions"]> {
+function extractAnswerKeyValues(html: string, textValue: string) {
+  const dataAnswers = extractDataAnswerValues(html);
+  if (dataAnswers.length) return dataAnswers;
+  const listAnswers = extractHtmlListAnswerValues(html);
+  if (listAnswers.length) return listAnswers;
+  return extractTextAnswerValues(textValue);
+}
+
+function extractDataAnswerValues(html: string) {
+  const values: string[] = [];
+  const pattern = /\bdata-(?:answer|answer-key|correct|correct-answer)=["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html)) !== null) {
+    const value = cleanAnswerValue(match[1]);
+    if (value) values.push(value);
+  }
+  return values;
+}
+
+function extractHtmlListAnswerValues(html: string) {
+  const answerHtmlSection =
+    html.match(/<[^>]+data-answer-key[^>]*>([\s\S]*?)<\/(?:section|div|ol|ul)>/i)?.[1] ||
+    html.match(/<(?:h[1-6]|strong|b)[^>]*>\s*(?:answers?|answer\s*key)\s*<\/(?:h[1-6]|strong|b)>[\s\S]*?(<ol[\s\S]*?<\/ol>|<ul[\s\S]*?<\/ul>)/i)?.[1] ||
+    "";
+  if (!answerHtmlSection) return [];
+
+  const values: string[] = [];
+  const pattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(answerHtmlSection)) !== null) {
+    const value = cleanAnswerValue(match[1]);
+    if (value) values.push(value);
+  }
+  return values;
+}
+
+function extractTextAnswerValues(textValue: string) {
+  const answerSection = textValue.match(/(?:answer\s*key|answers?)\s*[:\n]+([\s\S]+)/i)?.[1] || "";
+  if (!answerSection) return [];
+  const limitedSection = answerSection.split(/\n+/).slice(0, 80).join("\n");
+  const values: string[] = [];
+
+  for (const line of limitedSection.split(/\n+/)) {
+    const cleanedLine = line.trim();
+    if (!cleanedLine) continue;
+    const direct = cleanedLine.match(/^\s*(?:\d{1,2}|[A-D])(?:[\).:\-]|\s)\s*(.+)$/i)?.[1];
+    const value = cleanAnswerValue(direct || "");
+    if (value) values.push(value);
+  }
+
+  if (values.length) return values;
+
+  const inlineValues: string[] = [];
+  const inlinePattern = /(?:^|\s)\d{1,2}[\).:\-]\s*([^0-9\n;|]+?)(?=\s+\d{1,2}[\).:\-]|$)/g;
+  let match: RegExpExecArray | null;
+  while ((match = inlinePattern.exec(limitedSection)) !== null) {
+    const value = cleanAnswerValue(match[1]);
+    if (value) inlineValues.push(value);
+  }
+  if (inlineValues.length) return inlineValues;
+
+  if (limitedSection.length > 800) return [];
+  return limitedSection
+    .split(/[,;\n|]+/)
+    .map(cleanAnswerValue)
+    .filter(Boolean);
+}
+
+function cleanAnswerValue(value: string) {
+  const cleaned = htmlToText(value)
+    .replace(/^(?:answer\s*)?(?:\d{1,2}|[A-D])(?:[\).:\-]|\s)+/i, "")
+    .replace(/^[\s:;,\-–—]+|[\s:;,\-–—]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || /^(?:answer\s*key|answers?)$/i.test(cleaned)) return "";
+  if (cleaned.length > 80) return "";
+  return cleaned;
+}
+
+function inferQuestions(html: string, textValue: string, questionType: string, answerValues: string[] = []): NonNullable<TaskContent["questions"]> {
   const inputCount = (html.match(/<(?:input|select|textarea)\b/gi) || []).length;
   const numberedLines = extractNumberedQuestionLines(textValue);
   const rangedCount = countQuestionRanges(textValue);
   const blankCount = countCompletionBlanks(html, textValue);
   const bracketedNumbers = countBracketedQuestionNumbers(textValue);
-  const dataQuestions = (html.match(/\bdata-(?:question|answer|blank|q)(?:-id)?=/gi) || []).length;
-  const total = Math.min(Math.max(inputCount, numberedLines.length, rangedCount, blankCount, bracketedNumbers, dataQuestions), 40);
+  const dataQuestions = (html.match(/\bdata-(?:question|blank|q)(?:-id)?=/gi) || []).length;
+  const structuredTotal = Math.max(inputCount, numberedLines.length, rangedCount, blankCount, dataQuestions);
+  const total = Math.min(structuredTotal || bracketedNumbers, 40);
   if (!total) return [];
   const type = mapQuestionType(questionType);
+  const answers = answerValues.map(cleanAnswerValue);
   if (isCompletionType(type)) {
     const labels = extractCompletionLabels(textValue, total);
     return [{
       type,
       question: labelQuestionType(type),
-      items: Array.from({ length: total }, (_, index) => ({ label: labels[index] || `Question ${index + 1}: ___`, answer: "" }))
+      items: Array.from({ length: total }, (_, index) => ({ label: labels[index] || `Question ${index + 1}: ___`, answer: answers[index] || "" }))
     }];
   }
   return Array.from({ length: total }, (_, index) => ({
     type: type || "short_answer",
     question: numberedLines[index]?.replace(/^\s*\d{1,2}[\).]\s*/, "") || `Question ${index + 1}`,
-    answer: ""
+    answer: answers[index] || ""
   }));
 }
 
@@ -544,17 +642,17 @@ function extractNumberedQuestionLines(textValue: string) {
 }
 
 function countQuestionRanges(textValue: string) {
-  let total = 0;
+  const numbers = new Set<number>();
   const rangePattern = /Questions?\s+(\d{1,2})\s*(?:-|–|to)\s*(\d{1,2})/gi;
   let match: RegExpExecArray | null;
   while ((match = rangePattern.exec(textValue)) !== null) {
     const start = Number(match[1]);
     const end = Number(match[2]);
     if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
-      total += end - start + 1;
+      for (let number = start; number <= end; number += 1) numbers.add(number);
     }
   }
-  return total;
+  return numbers.size;
 }
 
 function countCompletionBlanks(html: string, textValue: string) {
@@ -605,24 +703,6 @@ function mapQuestionType(value: string) {
 
 function labelQuestionType(type: string) {
   return type.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
-}
-
-function countAnswerKeys(html: string, textValue: string) {
-  const dataAnswers = (html.match(/data-answer=/gi) || []).length;
-  const answerHtmlSection =
-    html.match(/<[^>]+data-answer-key[^>]*>([\s\S]*?)<\/(?:section|div|ol|ul)>/i)?.[1] ||
-    html.match(/<(?:h[1-6]|strong|b)[^>]*>\s*(?:answers?|answer\s*key)\s*<\/(?:h[1-6]|strong|b)>[\s\S]*?(<ol[\s\S]*?<\/ol>|<ul[\s\S]*?<\/ul>)/i)?.[1] ||
-    "";
-  const listAnswers = answerHtmlSection ? (answerHtmlSection.match(/<li\b/gi) || []).length : 0;
-  const answerSection = textValue.match(/(?:answer\s*key|answers?)[:\s]+([\s\S]+)/i)?.[1] || "";
-  const numberedAnswers = answerSection ? (answerSection.match(/\b\d{1,2}[\).]\s+\S+/g) || []).length : 0;
-  const inlineAnswers = answerSection && !numberedAnswers && !listAnswers
-    ? answerSection
-        .split(/\s+/)
-        .map((value) => value.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, ""))
-        .filter((value) => value.length > 1).length
-    : 0;
-  return Math.max(dataAnswers, listAnswers, numberedAnswers, inlineAnswers);
 }
 
 function defaultSubtype(skill: string, structure: string) {

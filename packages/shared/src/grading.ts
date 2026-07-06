@@ -19,20 +19,20 @@ export function gradeQuestions(questions: Question[], answers: Record<string, un
 
   questions.forEach((q, index) => {
     const saved = answers[String(index)];
-    if (q.type === "matching" || q.type === "sentence_endings") {
+    if ((q.type === "matching" || q.type === "sentence_endings") && q.items?.length) {
       const savedMatch = isRecord(saved) ? saved : {};
       for (const [itemIndex, item] of (q.items || []).entries()) {
         total++;
-        if (String(savedMatch[String(itemIndex)] || "") === String(item.answer || "")) correct++;
+        if (isCorrectAnswer(savedMatch[String(itemIndex)], item.answer)) correct++;
       }
       return;
     }
 
-    if (["diagram_label", "table_completion", "summary_completion", "flow_chart", "note_completion"].includes(q.type)) {
+    if (["diagram_label", "table_completion", "summary_completion", "flow_chart", "note_completion", "sentence_completion"].includes(q.type)) {
       const savedMatch = isRecord(saved) ? saved : {};
       for (const [itemIndex, item] of (q.items || []).entries()) {
         total++;
-        if (normalise(savedMatch[String(itemIndex)]) === normalise(item.answer)) correct++;
+        if (isCorrectAnswer(savedMatch[String(itemIndex)], item.answer)) correct++;
       }
       return;
     }
@@ -48,10 +48,10 @@ export function gradeQuestions(questions: Question[], answers: Record<string, un
     }
 
     total++;
-    if (["gap_fill", "short_answer"].includes(q.type)) {
-      if (normalise(saved) === normalise(q.answer)) correct++;
+    if (["gap_fill", "short_answer", "matching", "sentence_endings"].includes(q.type)) {
+      if (isCorrectAnswer(saved, q.answer)) correct++;
     } else if (["tfng", "ynng", "mcq"].includes(q.type)) {
-      if (String(saved || "") === String(q.answer || "")) correct++;
+      if (isCorrectAnswer(saved, q.answer)) correct++;
     }
   });
 
@@ -111,7 +111,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalise(value: unknown) {
-  return String(value || "").toLowerCase().trim();
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s.,;:!?()[\]{}"']+|[\s.,;:!?()[\]{}"']+$/g, "")
+    .trim();
+}
+
+function isCorrectAnswer(actual: unknown, expected: unknown) {
+  const expectedValue = normalise(expected);
+  if (!expectedValue) return false;
+  return normalise(actual) === expectedValue;
 }
 
 function findAudioInHtml(html?: string) {

@@ -3,12 +3,11 @@
 import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Button, Card, Input } from "@ielts-pro/ui";
 import { studentLogin } from "../actions/auth";
 
 export default function StudentLoginPage() {
   return (
-    <Suspense fallback={<main className="login-screen" />}>
+    <Suspense fallback={<main className="student-login-page" />}>
       <StudentLoginForm />
     </Suspense>
   );
@@ -18,52 +17,53 @@ function StudentLoginForm() {
   const [state, action, pending] = useActionState(studentLogin, undefined);
   const searchParams = useSearchParams();
   const sessionError = searchParams.get("error");
+  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_APP_URL || "https://ielts-pro-admin-web.vercel.app";
+
   return (
-    <main className="login-screen">
-      <Link className="login-home-link" href="/">IELTS Pro home</Link>
-      <section className="login-hero">
-        <p className="eyebrow">Private IELTS Pro portal</p>
-        <h1>Enter your teacher-issued IELTS workspace.</h1>
-        <p>
-          Use the exact full name and Student Access ID from your teacher. The portal keeps your assigned tests,
-          writing feedback, result history, and device sessions in one place.
-        </p>
-        <div className="login-skill-strip" aria-label="IELTS skills">
-          <span>Reading</span>
-          <span>Listening</span>
-          <span>Writing</span>
-          <span>Full tests</span>
+    <main className="student-login-page">
+      <section className="student-login-form-panel" aria-labelledby="student-login-title">
+        <Link className="student-login-back" href="/" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M20 12H5M11 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+
+        <div className="student-login-copy">
+          <h1 id="student-login-title">Login</h1>
+          <span>Login <em>via your personal Id</em></span>
         </div>
-        <div className="study-map" aria-hidden="true">
-          <div className="study-map-head">
-            <span>Band path</span>
-            <strong>7.0+</strong>
-          </div>
-          <div className="study-row"><span>R</span><i /><b>Passage drills</b></div>
-          <div className="study-row"><span>L</span><i /><b>Audio sections</b></div>
-          <div className="study-row"><span>W</span><i /><b>Teacher feedback</b></div>
+
+        <form action={action} className="student-login-form">
+          <p className="student-login-role">Student</p>
+          <label className="student-line-field">
+            <span className="sr-only">Full Name</span>
+            <input name="name" autoComplete="name" placeholder="Full Name" required />
+          </label>
+          <label className="student-line-field">
+            <span className="sr-only">Personal ID</span>
+            <input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="Personal ID" required />
+          </label>
+          {sessionError === "session-revoked" ? <p className="student-login-error">This device session was revoked or your access was closed. Contact your teacher.</p> : null}
+          {sessionError === "session-expired" ? <p className="student-login-error">Your session expired. Enter your Student Access ID again.</p> : null}
+          {sessionError === "access-setup" ? <p className="student-login-error">Student access setup is not finished yet. Apply the Supabase migration, then try again.</p> : null}
+          {state?.error ? <p className="student-login-error">{state.error}</p> : null}
+          <button className="student-login-next" disabled={pending}>{pending ? "Checking..." : "Next"}</button>
+        </form>
+
+        <p className="student-login-help">You can find your ID from your teacher !</p>
+        <Link className="student-login-admin" href={adminUrl}>
+          Admin
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      </section>
+
+      <section className="student-login-visual" aria-label="IELTS Pro">
+        <div className="student-login-badge">
+          IELTS <span>PRO</span>
         </div>
       </section>
-      <Card className="login-card">
-        <p className="eyebrow">Teacher-issued access</p>
-        <h2>Student access</h2>
-        <p className="muted">There is no public signup. Access is created in the admin panel.</p>
-        <form action={action} className="form-stack">
-          <label>
-            Full Name
-            <Input name="name" autoComplete="name" placeholder="Miravzal S" required />
-          </label>
-          <label>
-            Student Access ID
-            <Input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="1111111" required />
-          </label>
-          {sessionError === "session-revoked" ? <p className="form-error">This device session was revoked or your access was closed. Contact your teacher.</p> : null}
-          {sessionError === "session-expired" ? <p className="form-error">Your session expired. Enter your Student Access ID again.</p> : null}
-          {sessionError === "access-setup" ? <p className="form-error">Student access setup is not finished yet. Apply the Supabase migration, then try again.</p> : null}
-          {state?.error ? <p className="form-error">{state.error}</p> : null}
-          <Button disabled={pending}>{pending ? "Checking..." : "Enter Student Portal"}</Button>
-        </form>
-      </Card>
     </main>
   );
 }

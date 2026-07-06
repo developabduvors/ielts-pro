@@ -1,86 +1,135 @@
 import Link from "next/link";
-import { Badge, Card, LinkButton, StatCard } from "@ielts-pro/ui";
-import { createServerSupabaseClient, getStudentDeviceSessions, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getStudentById, getStudentDeviceSessions, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
+import { feedbackSubmissions, formatDate, reviewedSubmissions, scoreLabel } from "../student-utils";
 
 export default async function ProfilePage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const submissions = await getStudentSubmissions(supabase, session.id);
+  const [student, submissions] = await Promise.all([
+    getStudentById(supabase, session.id),
+    getStudentSubmissions(supabase, session.id)
+  ]);
   let deviceSessions: Awaited<ReturnType<typeof getStudentDeviceSessions>> = [];
   let deviceTrackingNote = "";
   try {
     deviceSessions = await getStudentDeviceSessions(supabase, session.id);
   } catch (error) {
     console.error("Student profile device sessions unavailable", error);
-    deviceTrackingNote = "Device tracking is being configured. Your practice and results still work.";
+    deviceTrackingNote = "Device tracking is being configured. Practice, results, and feedback still work.";
   }
-  const reviewed = submissions.filter((submission) => submission.score != null);
-  const feedback = submissions.filter((submission) => submission.feedback);
+  const reviewed = reviewedSubmissions(submissions);
+  const feedback = feedbackSubmissions(submissions);
   const activeDevices = deviceSessions.filter((device) => device.is_active !== false && !device.revoked_at);
 
   return (
-    <StudentShell name={session.name}>
-      <main className="page">
-        <section className="profile-hero">
+    <StudentShell
+      name={session.name}
+      groupName={student?.groups?.name}
+      sectionLabel="Profile"
+      sectionDescription="Access ID, recent work, and active devices"
+    >
+      <main className="student-page student-profile-page">
+        <section className="student-hero-panel">
           <div>
-            <p className="eyebrow">Student profile</p>
+            <p className="student-kicker">Student profile</p>
             <h1>{session.name}</h1>
-            <p>Private IELTS workspace connected to your teacher-issued access ID.</p>
-            <div className="profile-actions">
-              <LinkButton href="/practice">Continue practice</LinkButton>
-              <LinkButton href="/progress" variant="secondary">View results</LinkButton>
+            <p>
+              {student?.groups?.name
+                ? `Your private IELTS workspace is connected to ${student.groups.name}.`
+                : "Your teacher-issued access ID is active. Ask your teacher to assign a group if lessons are missing."}
+            </p>
+            <div className="student-action-row">
+              <Link className="student-primary-button" href="/practice">Continue practice</Link>
+              <Link className="student-secondary-button" href="/results">View results</Link>
             </div>
           </div>
-          <div className="access-pass">
+          <div className="student-access-card">
             <span>Student Access ID</span>
             <strong>{maskAccessId(session.student_code)}</strong>
             <small>Never share this code publicly.</small>
           </div>
         </section>
 
-        <section className="stats-grid" aria-label="Profile summary">
-          <StatCard label="Attempts" value={submissions.length} note="submitted tasks" />
-          <StatCard label="Reviewed" value={reviewed.length} note="scored attempts" />
-          <StatCard label="Feedback" value={feedback.length} note="teacher notes" />
-          <StatCard label="Devices" value={activeDevices.length} note="active sessions" />
+        <section className="student-stat-grid" aria-label="Profile summary">
+          <MetricCard label="Attempts" value={submissions.length} note="submitted tasks" />
+          <MetricCard label="Reviewed" value={reviewed.length} note="scored attempts" />
+          <MetricCard label="Feedback" value={feedback.length} note="teacher notes" />
+          <MetricCard label="Devices" value={activeDevices.length} note="active sessions" />
         </section>
 
-        <div className="content-grid">
-          <section>
-            <div className="section-head">
-              <h2>Recent results</h2>
-              <Link href="/progress">All history</Link>
+        <section className="student-two-column">
+          <article className="student-panel">
+            <div className="student-section-header">
+              <div>
+                <p className="student-kicker">Recent results</p>
+                <h2>Latest submissions</h2>
+              </div>
+              <Link href="/results">All history</Link>
             </div>
-            <div className="attempt-list">
+            <div className="student-card-list">
               {submissions.slice(0, 5).map((submission) => (
-                <Card className="attempt-item" key={submission.id}>
-                  <strong>{submission.tasks?.title || "Practice task"}</strong>
-                  <small>{new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(submission.submitted_at))}</small>
-                  {submission.score != null ? <span>{submission.score}/{submission.total ?? "?"}</span> : <Badge tone="warning">Waiting for review</Badge>}
-                </Card>
+                <article className="student-result-row" key={submission.id}>
+                  <span className="student-skill-icon tone-reading">{submission.tasks?.title?.slice(0, 1) || "T"}</span>
+                  <div>
+                    <strong>{submission.tasks?.title || "Practice task"}</strong>
+                    <small>{formatDate(submission.submitted_at, { dateStyle: "medium", timeStyle: "short" })}</small>
+                    {submission.feedback ? <p>{submission.feedback}</p> : null}
+                  </div>
+                  <em>{scoreLabel(submission)}</em>
+                </article>
               ))}
-              {!submissions.length ? <Card className="attempt-item"><strong>No attempts yet</strong><small>Start practice to build your result history.</small></Card> : null}
+              {!submissions.length ? (
+                <div className="student-empty-card">
+                  <h3>No attempts yet</h3>
+                  <p>Start practice to build your result history.</p>
+                  <Link className="student-secondary-button" href="/practice">Open practice</Link>
+                </div>
+              ) : null}
             </div>
-          </section>
+          </article>
 
-          <aside className="right-rail">
-            <div className="section-head"><h2>Device sessions</h2></div>
-            {deviceTrackingNote ? <p className="setup-note">{deviceTrackingNote}</p> : null}
-            <div className="device-stack">
-              {deviceSessions.slice(0, 5).map((device) => (
-                <Card className="profile-device" key={device.id}>
-                  {device.is_active !== false && !device.revoked_at ? <Badge tone="success">Active</Badge> : <Badge tone="warning">Revoked</Badge>}
-                  <strong>{shortUserAgent(device.user_agent)}</strong>
-                  <small>Last seen {formatDate(device.last_seen_at)}</small>
-                </Card>
-              ))}
+          <aside className="student-panel">
+            <div className="student-section-header">
+              <div>
+                <p className="student-kicker">Access safety</p>
+                <h2>Device sessions</h2>
+              </div>
+            </div>
+            {deviceTrackingNote ? <p className="student-warning-note">{deviceTrackingNote}</p> : null}
+            <div className="student-card-list">
+              {deviceSessions.slice(0, 5).map((device) => {
+                const active = device.is_active !== false && !device.revoked_at;
+                return (
+                  <article className="student-device-card" key={device.id}>
+                    <span className={`student-status-pill ${active ? "is-done" : ""}`}>{active ? "Active" : "Revoked"}</span>
+                    <strong>{shortUserAgent(device.user_agent)}</strong>
+                    <small>Last seen {formatDate(device.last_seen_at, { dateStyle: "medium", timeStyle: "short" })}</small>
+                  </article>
+                );
+              })}
+              {!deviceSessions.length && !deviceTrackingNote ? (
+                <div className="student-empty-card">
+                  <h3>No tracked devices yet</h3>
+                  <p>Your current browser session will appear here after the next access check.</p>
+                </div>
+              ) : null}
             </div>
           </aside>
-        </div>
+        </section>
       </main>
     </StudentShell>
+  );
+}
+
+function MetricCard({ label, value, note }: { label: string; value: string | number; note: string }) {
+  return (
+    <article className="student-metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{note}</small>
+    </article>
   );
 }
 
@@ -91,13 +140,8 @@ function maskAccessId(value: string) {
 
 function shortUserAgent(userAgent?: string | null) {
   if (!userAgent) return "Unknown browser";
-  if (userAgent.includes("Chrome")) return "Chrome";
-  if (userAgent.includes("Safari")) return "Safari";
-  if (userAgent.includes("Firefox")) return "Firefox";
-  return userAgent.slice(0, 34);
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "never";
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  if (userAgent.includes("Chrome")) return "Chrome browser";
+  if (userAgent.includes("Safari")) return "Safari browser";
+  if (userAgent.includes("Firefox")) return "Firefox browser";
+  return userAgent.slice(0, 42);
 }

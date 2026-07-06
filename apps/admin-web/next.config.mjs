@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { config } from "dotenv";
 
-// Monorepo root (two levels up) — silences Next.js' multiple-lockfile workspace
-// root warning by pinning the root instead of letting it infer from a stray
-// lockfile in a parent directory.
+// Monorepo root (two levels up)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+config({ path: resolve(repoRoot, ".env.local") });
 
 const nextConfig = {
   turbopack: { root: repoRoot },

@@ -19,7 +19,7 @@ export async function submitTaskAttempt(formData: FormData) {
     const answer = String(formData.get("writing_answer") || "").trim();
     if (!answer) redirect(`/tests/${taskId}?error=empty`);
     await submitAttempt(supabase, { studentId: session.id, taskId, answer });
-    redirect("/progress?submitted=writing");
+    redirect("/results?submitted=writing");
   }
 
   const answers: Record<string, unknown> = {};
@@ -51,5 +51,5 @@ export async function submitTaskAttempt(formData: FormData) {
     score: correct,
     total
   });
-  redirect("/progress?submitted=test");
+  redirect("/results?submitted=test");
 }

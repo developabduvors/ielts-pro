@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --webpack --port 3000",
     "build": "next build --webpack",
+    "build:vercel": "npm --workspace @ielts-pro/shared run build && npm --workspace @ielts-pro/ui run build && next build --webpack",
     "start": "next start --port 3000",
     "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit"
   },
@@ -13,6 +14,7 @@
     "@ielts-pro/shared": "*",
     "@ielts-pro/ui": "*",
     "@supabase/supabase-js": "^2.46.1",
+    "dotenv": "^17.4.2",
     "next": "^16.2.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
