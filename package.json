@@ -6,11 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:student": "npm run dev --workspace student-web",
-    "dev:admin": "npm run dev --workspace admin-web",
-    "build": "npm run build:student && npm run build:admin",
-    "build:student": "npm run build --workspace student-web",
-    "build:admin": "npm run build --workspace admin-web",
+    "dev": "npm run dev --workspace web",
+    "build": "npm run build --workspace web",
+    "build:vercel": "npm run build:vercel --workspace web",
+    "start": "npm run start --workspace web",
     "test:smoke": "node scripts/qa-smoke.mjs",
     "typecheck": "npm --workspaces run typecheck --if-present",
     "lint": "npm --workspaces run lint --if-present"
