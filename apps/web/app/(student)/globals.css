@@ -3979,3 +3979,57 @@ body {
     max-height: none;
   }
 }
+
+/* Route-change loading state (app/(student)/loading.tsx). Shown instantly on
+   navigation so pages never feel frozen while the server renders. */
+.student-route-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .55);
+  backdrop-filter: blur(2px);
+  animation: student-route-fade .18s ease both;
+}
+.student-route-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--blue, #22a7f2), #21d4fd);
+  animation: student-route-bar 1.1s ease-in-out infinite;
+}
+.student-route-loading-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(19, 33, 59, .12);
+  color: #0a1b2f;
+  font-weight: 600;
+}
+.student-brand-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(34, 167, 242, .25);
+  border-top-color: var(--blue, #22a7f2);
+  animation: student-route-spin .7s linear infinite;
+}
+.student-route-loading-text { font-size: .95rem; letter-spacing: .01em; }
+@keyframes student-route-spin { to { transform: rotate(360deg); } }
+@keyframes student-route-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes student-route-bar {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(.7); }
+  100% { transform: scaleX(1); opacity: .2; }
+}
+@media (prefers-color-scheme: dark) {
+  .student-route-loading { background: rgba(10, 27, 47, .55); }
+  .student-route-loading-inner { background: #102843; color: #eaf6ff; box-shadow: 0 18px 46px rgba(0,0,0,.4); }
+}
