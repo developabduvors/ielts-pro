@@ -131,23 +131,37 @@ async function getPublishedTasksForStudentLegacy(supabase: SupabaseClient, group
   }
 }
 
+// Login checking normalizes names so a correct, unique Access ID is not rejected
+// over trivial differences (leading/trailing/duplicated spaces or letter case).
+function normalizeStudentName(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export async function getStudentByCode(supabase: SupabaseClient, name: string, code: string) {
+  // student_code is unique, so match on it exactly (trimmed) and verify the name
+  // in JS. Using .ilike("name", …) here treated the raw input as a LIKE pattern,
+  // so any %/_ or spacing/case mismatch failed the lookup even with a valid code.
+  const trimmedCode = code.trim();
   const { data, error } = await supabase
     .from("students")
     .select("*,groups(name)")
-    .ilike("name", name)
-    .eq("student_code", code)
+    .eq("student_code", trimmedCode)
     .maybeSingle();
-  if (!error) return data as Student | null;
+  if (!error) return matchStudentName(data as Student | null, name);
   if (!isMissingStudentRelationOrColumnError(error)) throw error;
   const fallback = await supabase
     .from("students")
     .select("*")
-    .ilike("name", name)
-    .eq("student_code", code)
+    .eq("student_code", trimmedCode)
     .maybeSingle();
   if (fallback.error) throw fallback.error;
-  return fallback.data as Student | null;
+  return matchStudentName(fallback.data as Student | null, name);
+}
+
+function matchStudentName(student: Student | null, name: string) {
+  if (!student) return null;
+  if (normalizeStudentName(student.name || "") !== normalizeStudentName(name)) return null;
+  return student;
 }
 
 export async function getStudentById(supabase: SupabaseClient, studentId: string) {
