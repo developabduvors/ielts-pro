@@ -49,13 +49,25 @@ export async function requireStudentSession() {
   if (session.device_session_id === "legacy" && session.session_token === "legacy") {
     return session;
   }
+
+  // The device-session check is a DB round-trip that otherwise runs on EVERY page
+  // navigation. Cache a successful check briefly (module-level; Railway runs a
+  // persistent Node process) so page-to-page navigation doesn't re-hit the DB.
+  // A revoked device keeps working for at most VALIDATION_TTL_MS, which is an
+  // acceptable trade for making navigation feel instant.
+  const tokenHash = hashStudentSessionToken(session.session_token);
+  const cacheKey = `${session.id}:${session.device_session_id}:${tokenHash}`;
+  if (isRecentlyValidated(cacheKey)) {
+    return session;
+  }
+
   const requestHeaders = await headers();
   let valid = false;
   try {
     valid = await validateStudentDeviceSession(createServerSupabaseClient(), {
       studentId: session.id,
       deviceSessionId: session.device_session_id,
-      sessionTokenHash: hashStudentSessionToken(session.session_token),
+      sessionTokenHash: tokenHash,
       userAgent: requestHeaders.get("user-agent")
     });
   } catch (error) {
@@ -66,9 +78,36 @@ export async function requireStudentSession() {
     redirect("/login?error=access-setup");
   }
   if (!valid) {
+    validatedSessions.delete(cacheKey);
     redirect("/login?error=session-revoked");
   }
+  rememberValidated(cacheKey);
   return session;
+}
+
+// Short-lived cache of device-session validations, keyed by student + device +
+// token hash. Bounds memory by dropping expired entries opportunistically.
+const VALIDATION_TTL_MS = 60_000;
+const validatedSessions = new Map<string, number>();
+
+function isRecentlyValidated(key: string) {
+  const until = validatedSessions.get(key);
+  if (!until) return false;
+  if (until <= Date.now()) {
+    validatedSessions.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function rememberValidated(key: string) {
+  validatedSessions.set(key, Date.now() + VALIDATION_TTL_MS);
+  if (validatedSessions.size > 5000) {
+    const now = Date.now();
+    for (const [k, v] of validatedSessions) {
+      if (v <= now) validatedSessions.delete(k);
+    }
+  }
 }
 
 export async function clearStudentSession() {
