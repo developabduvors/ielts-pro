@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PublicShell } from "../components/PublicShell";
 
 export default function ContactPage() {
-  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_APP_URL || "/admin";
+  const adminUrl = "/admin";
 
   return (
     <PublicShell>

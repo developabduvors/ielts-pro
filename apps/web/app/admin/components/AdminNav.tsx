@@ -4,15 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "D" },
-  { href: "/students", label: "Students", icon: "S" },
-  { href: "/student-control", label: "Student Control", icon: "P" },
-  { href: "/lessons", label: "Content Studio", icon: "C" },
-  { href: "/full-tests/new", label: "Test Builder", icon: "B" },
-  { href: "/html-tests/new", label: "HTML Tests", icon: "H" },
-  { href: "/submissions", label: "Writing Review", icon: "W" },
-  { href: "/analytics", label: "Analytics", icon: "A" },
-  { href: "/settings", label: "Settings", icon: "T" }
+  { href: "/admin/dashboard", label: "Dashboard", icon: "D" },
+  { href: "/admin/students", label: "Students", icon: "S" },
+  { href: "/admin/student-control", label: "Student Control", icon: "P" },
+  { href: "/admin/lessons", label: "Content Studio", icon: "C" },
+  { href: "/admin/full-tests/new", label: "Test Builder", icon: "B" },
+  { href: "/admin/html-tests/new", label: "HTML Tests", icon: "H" },
+  { href: "/admin/submissions", label: "Writing Review", icon: "W" },
+  { href: "/admin/analytics", label: "Analytics", icon: "A" },
+  { href: "/admin/settings", label: "Settings", icon: "T" }
 ];
 
 export function AdminNav() {

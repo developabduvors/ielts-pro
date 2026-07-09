@@ -17,7 +17,7 @@ function StudentLoginForm() {
   const [state, action, pending] = useActionState(studentLogin, undefined);
   const searchParams = useSearchParams();
   const sessionError = searchParams.get("error");
-  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_APP_URL || "/admin";
+  const adminUrl = "/admin";
 
   return (
     <main className="student-login-page">
