@@ -3,8 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient, validateStudentDeviceSession, type AdminSession, type StudentSession } from "@ielts-pro/shared";
-import { getAdminSession } from "@/lib/admin-session";
+import { createServerSupabaseClient, validateStudentDeviceSession, type StudentSession } from "@ielts-pro/shared";
 
 const COOKIE_NAME = "ielts_student_session";
 
@@ -43,12 +42,9 @@ export async function getStudentSession() {
 
 export async function requireStudentSession() {
   const session = await getStudentSession();
-  if (!session) {
-    // Admins can open student pages directly (preview) without a student login.
-    const admin = await getAdminSession();
-    if (admin) return adminPreviewSession(admin);
-    redirect("/login");
-  }
+  // No student cookie (logged out or never logged in) always means the login
+  // page — no automatic entry, even when an admin session exists in the browser.
+  if (!session) redirect("/login");
   if (!session.device_session_id || !session.session_token) {
     return session;
   }
@@ -79,22 +75,6 @@ export async function requireStudentSession() {
     console.error("Student session validation failed", error);
   }
   return session;
-}
-
-// Sentinel student id for admins previewing student pages: a valid UUID that
-// never matches a real student row, so lookups return empty data instead of
-// throwing on uuid parsing.
-const ADMIN_PREVIEW_STUDENT_ID = "00000000-0000-0000-0000-000000000000";
-
-function adminPreviewSession(admin: AdminSession): StudentSession {
-  return {
-    id: ADMIN_PREVIEW_STUDENT_ID,
-    name: admin.email.split("@")[0] || "Teacher",
-    student_code: "admin-preview",
-    group_id: null,
-    device_session_id: "legacy",
-    session_token: "legacy"
-  };
 }
 
 // Short-lived cache of device-session validations, keyed by student + device +
