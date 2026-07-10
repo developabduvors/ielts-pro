@@ -34,9 +34,9 @@ export async function createLessonAction(formData: FormData) {
     skill: String(formData.get("skill") || "reading"),
     group_id: text(formData, "group_id") || null
   });
-  revalidatePath("/lessons");
-  revalidatePath("/student-control");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/student-control");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function createGroupAction(formData: FormData) {
@@ -47,10 +47,10 @@ export async function createGroupAction(formData: FormData) {
     name,
     order: numberField(formData, "group_order", 10)
   });
-  revalidatePath("/lessons");
-  revalidatePath("/students");
-  revalidatePath("/student-control");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function createStudentAccessAction(formData: FormData) {
@@ -65,8 +65,8 @@ export async function createStudentAccessAction(formData: FormData) {
     groupId: text(formData, "group_id") || null,
     maxDevices: maxDevicesValue ? Number(maxDevicesValue) : null
   });
-  revalidatePath("/students");
-  revalidatePath("/student-control");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
 }
 
 export async function updateStudentGroupAction(formData: FormData) {
@@ -75,8 +75,8 @@ export async function updateStudentGroupAction(formData: FormData) {
   const groupId = text(formData, "group_id") || null;
   if (!studentId) return;
   await updateStudentGroup(createServerSupabaseClient(), studentId, groupId);
-  revalidatePath("/students");
-  revalidatePath("/student-control");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
 }
 
 export async function toggleStudentAccessAction(formData: FormData) {
@@ -87,9 +87,9 @@ export async function toggleStudentAccessAction(formData: FormData) {
   const supabase = createServerSupabaseClient();
   await setStudentAccessStatus(supabase, studentId, open);
   if (!open) await revokeAllStudentDeviceSessions(supabase, studentId, admin.email);
-  revalidatePath("/students");
-  revalidatePath("/student-control");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function revokeDeviceSessionAction(formData: FormData) {
@@ -97,9 +97,9 @@ export async function revokeDeviceSessionAction(formData: FormData) {
   const sessionId = text(formData, "session_id");
   if (!sessionId) return;
   await revokeStudentDeviceSession(createServerSupabaseClient(), sessionId, admin.email);
-  revalidatePath("/students");
-  revalidatePath("/student-control");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function revokeAllDevicesAction(formData: FormData) {
@@ -107,14 +107,14 @@ export async function revokeAllDevicesAction(formData: FormData) {
   const studentId = text(formData, "student_id");
   if (!studentId) return;
   await revokeAllStudentDeviceSessions(createServerSupabaseClient(), studentId, admin.email);
-  revalidatePath("/students");
-  revalidatePath("/student-control");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/student-control");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function uploadHtmlTestAction(formData: FormData) {
   await requireAdminSession();
-  let successPath = "/html-tests/new";
+  let successPath = "/admin/html-tests/new";
   try {
     const file = formData.get("html_file");
     if (!isUpload(file)) throw new Error("Upload an .html file first.");
@@ -158,19 +158,19 @@ export async function uploadHtmlTestAction(formData: FormData) {
 
     await updateTask(supabase, task.id, { html_path: storagePath });
 
-    revalidatePath("/lessons");
-    revalidatePath("/dashboard");
+    revalidatePath("/admin/lessons");
+    revalidatePath("/admin/dashboard");
     const params = new URLSearchParams({ saved: "1", title, skill, published: published ? "yes" : "no" });
-    successPath = `/html-tests/new?${params.toString()}`;
+    successPath = `/admin/html-tests/new?${params.toString()}`;
   } catch (error) {
-    redirect(`/html-tests/new?error=${encodeURIComponent(readableError(error))}`);
+    redirect(`/admin/html-tests/new?error=${encodeURIComponent(readableError(error))}`);
   }
   redirect(successPath);
 }
 
 export async function importHtmlContentAction(formData: FormData) {
   await requireAdminSession();
-  let successPath = "/full-tests/new";
+  let successPath = "/admin/full-tests/new";
   try {
     const supabase = createServerSupabaseClient();
     const { parsed, rawHtml, contentName, contentDescription } = await readHtmlImportDraft(formData);
@@ -210,9 +210,9 @@ export async function importHtmlContentAction(formData: FormData) {
 
     await updateTask(supabase, task.id, { html_path: storagePath });
 
-    revalidatePath("/full-tests/new");
-    revalidatePath("/lessons");
-    revalidatePath("/dashboard");
+    revalidatePath("/admin/full-tests/new");
+    revalidatePath("/admin/lessons");
+    revalidatePath("/admin/dashboard");
     const params = new URLSearchParams({
       saved: "1",
       task: task.id,
@@ -223,11 +223,43 @@ export async function importHtmlContentAction(formData: FormData) {
       audio: parsed.audioUrl ? "yes" : "no",
       warnings: String(parsed.warnings.length)
     });
-    successPath = `/full-tests/new?${params.toString()}`;
+    successPath = `/admin/full-tests/new?${params.toString()}`;
   } catch (error) {
     redirectBuilderError(error);
   }
   redirect(successPath);
+}
+
+const AUDIO_EXTENSIONS = ["mp3", "m4a", "wav", "ogg", "aac"];
+const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
+
+export type AudioUploadTicket =
+  | { status: "success"; signedUrl: string; publicUrl: string }
+  | { status: "error"; error: string };
+
+// The audio file itself never touches this server action (Vercel caps request
+// bodies at ~4.5MB). The browser PUTs the file straight to Supabase Storage
+// using the signed URL returned here.
+export async function createListeningAudioUploadAction(fileName: string, fileSize: number): Promise<AudioUploadTicket> {
+  await requireAdminSession();
+  try {
+    const extension = String(fileName || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "";
+    if (!AUDIO_EXTENSIONS.includes(extension)) {
+      return { status: "error", error: `Audio must be one of: ${AUDIO_EXTENSIONS.map((value) => `.${value}`).join(", ")}` };
+    }
+    if (!Number.isFinite(fileSize) || fileSize <= 0) return { status: "error", error: "Audio file looks empty. Choose the file again." };
+    if (fileSize > MAX_AUDIO_BYTES) return { status: "error", error: "Audio file is larger than 100MB. Compress it to MP3 first." };
+    const supabase = createServerSupabaseClient();
+    const storagePath = `${crypto.randomUUID()}.${extension}`;
+    const signed = await supabase.storage.from("listening-audio").createSignedUploadUrl(storagePath);
+    if (signed.error || !signed.data) {
+      return { status: "error", error: `Could not prepare the audio upload: ${signed.error?.message || "unknown storage error"}` };
+    }
+    const publicUrl = supabase.storage.from("listening-audio").getPublicUrl(storagePath).data.publicUrl;
+    return { status: "success", signedUrl: signed.data.signedUrl, publicUrl };
+  } catch (error) {
+    return { status: "error", error: readableError(error) };
+  }
 }
 
 export async function previewHtmlImportAction(_previousState: HtmlPreviewState, formData: FormData): Promise<HtmlPreviewState> {
@@ -266,9 +298,9 @@ export async function attachContentToLessonAction(formData: FormData) {
     lesson_id: lessonId,
     content_status: "assigned"
   });
-  revalidatePath("/lessons");
-  revalidatePath("/full-tests/new");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/full-tests/new");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function updateTaskGroupsAction(formData: FormData) {
@@ -277,9 +309,9 @@ export async function updateTaskGroupsAction(formData: FormData) {
   if (!taskId) return;
   const groupIds = formData.getAll("group_ids").map((value) => String(value)).filter(Boolean);
   await setTaskGroups(createServerSupabaseClient(), taskId, groupIds);
-  revalidatePath("/lessons");
-  revalidatePath("/dashboard");
-  revalidatePath("/full-tests/new");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/full-tests/new");
 }
 
 export async function updateLessonGroupAction(formData: FormData) {
@@ -288,8 +320,8 @@ export async function updateLessonGroupAction(formData: FormData) {
   const groupId = text(formData, "group_id") || null;
   if (!lessonId) return;
   await updateLesson(createServerSupabaseClient(), lessonId, { group_id: groupId });
-  revalidatePath("/lessons");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function toggleLessonPublishAction(formData: FormData) {
@@ -301,10 +333,10 @@ export async function toggleLessonPublishAction(formData: FormData) {
   const nextPublished = !published;
   await updateLesson(supabase, id, { published: nextPublished });
   await updateTasksForLessonStatus(supabase, id, nextPublished ? "published" : "assigned");
-  revalidatePath("/lessons");
-  revalidatePath("/dashboard");
-  revalidatePath("/full-tests/new");
-  revalidatePath("/student-control");
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/full-tests/new");
+  revalidatePath("/admin/student-control");
 }
 
 export async function reviewSubmissionAction(formData: FormData) {
@@ -316,8 +348,8 @@ export async function reviewSubmissionAction(formData: FormData) {
     score: scoreValue ? Number(scoreValue) : null,
     feedback: String(formData.get("feedback") || "").trim() || null
   });
-  revalidatePath("/submissions");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/submissions");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function updateSiteSettingsAction(formData: FormData) {
@@ -338,8 +370,8 @@ export async function updateSiteSettingsAction(formData: FormData) {
     payments_enabled: formData.get("payments_enabled") === "on",
     free_course_enabled: formData.get("free_course_enabled") === "on"
   });
-  revalidatePath("/settings");
-  revalidatePath("/dashboard");
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/dashboard");
 }
 
 function text(formData: FormData, key: string) {
@@ -742,5 +774,5 @@ function readableError(error: unknown) {
 }
 
 function redirectBuilderError(error: unknown): never {
-  redirect(`/full-tests/new?error=${encodeURIComponent(readableError(error))}`);
+  redirect(`/admin/full-tests/new?error=${encodeURIComponent(readableError(error))}`);
 }

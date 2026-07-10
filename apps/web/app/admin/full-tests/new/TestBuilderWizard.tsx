@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent, KeyboardEvent } from "react";
 import { Badge, Button, Card, Input, Select, Textarea } from "@ielts-pro/ui";
 import {
+  createListeningAudioUploadAction,
   importHtmlContentAction,
   previewHtmlImportAction,
   type HtmlPreviewState
@@ -55,6 +56,8 @@ export function TestBuilderWizard() {
   const [isDragging, setIsDragging] = useState(false);
   const [contentName, setContentName] = useState("");
   const [rawHtml, setRawHtml] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const [audioUpload, setAudioUpload] = useState<{ status: "idle" | "uploading" | "success" | "error"; fileName?: string; error?: string }>({ status: "idle" });
 
   const questionTypes = useMemo(() => {
     if (skill === "listening") return listeningTypes;
@@ -70,7 +73,7 @@ export function TestBuilderWizard() {
     Number(previewState.data?.fileSize || 0) === Number(selectedFile.size || 0);
   const fileReady = Boolean(validFile && rawHtml.trim());
   const canPreview = Boolean(fileReady && !clientError);
-  const canSave = Boolean(canPreview && previewMatchesCurrentFile && !previewPending);
+  const canSave = Boolean(canPreview && previewMatchesCurrentFile && !previewPending && audioUpload.status !== "uploading");
   const uploadStatus = getUploadStatus(selectedFile, clientError, previewState, previewMatchesCurrentFile);
 
   useEffect(() => {
@@ -119,6 +122,32 @@ export function TestBuilderWizard() {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     fileInputRef.current?.click();
+  }
+
+  async function handleAudioFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAudioUpload({ status: "uploading", fileName: file.name });
+    try {
+      const ticket = await createListeningAudioUploadAction(file.name, file.size);
+      if (ticket.status === "error") {
+        setAudioUpload({ status: "error", fileName: file.name, error: ticket.error });
+        return;
+      }
+      const response = await fetch(ticket.signedUrl, {
+        method: "PUT",
+        headers: { "content-type": file.type || "audio/mpeg", "x-upsert": "true" },
+        body: file
+      });
+      if (!response.ok) {
+        setAudioUpload({ status: "error", fileName: file.name, error: `Audio upload failed (${response.status}). Try again.` });
+        return;
+      }
+      setAudioUrl(ticket.publicUrl);
+      setAudioUpload({ status: "success", fileName: file.name });
+    } catch {
+      setAudioUpload({ status: "error", fileName: file.name, error: "Audio upload failed. Check your connection and try again." });
+    }
   }
 
   function removeFile() {
@@ -292,8 +321,22 @@ export function TestBuilderWizard() {
               </label>
               <label>
                 Listening audio URL
-                <Input name="manual_audio_url" placeholder="Optional if audio is not inside HTML" />
+                <Input name="manual_audio_url" value={audioUrl} onChange={(event) => setAudioUrl(event.target.value)} placeholder="Paste a URL or upload a file below" />
               </label>
+            </div>
+            <div className="builder-fields-grid two-fields">
+              <label>
+                Listening audio file (MP3, M4A, WAV, OGG, AAC)
+                {/* No name attribute: the file must not ride the form POST (Vercel 4.5MB body cap). It goes straight to storage. */}
+                <input
+                  type="file"
+                  accept=".mp3,.m4a,.wav,.ogg,.aac,audio/*"
+                  onChange={handleAudioFile}
+                  disabled={audioUpload.status === "uploading"}
+                  data-testid="audio-file-input"
+                />
+              </label>
+              <AudioUploadStatus upload={audioUpload} audioUrl={audioUrl} />
             </div>
           </div>
         </section>
@@ -419,6 +462,23 @@ function ParsedPreview({
       </div>
     </div>
   );
+}
+
+function AudioUploadStatus({ upload, audioUrl }: { upload: { status: string; fileName?: string; error?: string }; audioUrl: string }) {
+  if (upload.status === "uploading") {
+    return <div className="upload-validation upload-validation-warning" role="status">Uploading {upload.fileName}... Keep this page open.</div>;
+  }
+  if (upload.status === "error") {
+    return <div className="upload-validation upload-validation-error" role="alert">{upload.error}</div>;
+  }
+  if (upload.status === "success" && audioUrl) {
+    return (
+      <div className="upload-validation upload-validation-success" role="status">
+        {upload.fileName} uploaded. Students will stream it from the audio URL field.
+      </div>
+    );
+  }
+  return <div className="upload-validation upload-validation-neutral" role="status">Optional: upload the listening audio and the URL fills in automatically.</div>;
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
