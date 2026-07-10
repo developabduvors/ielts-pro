@@ -3,7 +3,8 @@ import "server-only";
 import crypto from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient, validateStudentDeviceSession, type StudentSession } from "@ielts-pro/shared";
+import { createServerSupabaseClient, validateStudentDeviceSession, type AdminSession, type StudentSession } from "@ielts-pro/shared";
+import { getAdminSession } from "@/lib/admin-session";
 
 const COOKIE_NAME = "ielts_student_session";
 
@@ -42,19 +43,22 @@ export async function getStudentSession() {
 
 export async function requireStudentSession() {
   const session = await getStudentSession();
-  if (!session) redirect("/login");
+  if (!session) {
+    // Admins can open student pages directly (preview) without a student login.
+    const admin = await getAdminSession();
+    if (admin) return adminPreviewSession(admin);
+    redirect("/login");
+  }
   if (!session.device_session_id || !session.session_token) {
-    redirect("/login?error=session-expired");
+    return session;
   }
   if (session.device_session_id === "legacy" && session.session_token === "legacy") {
     return session;
   }
 
-  // The device-session check is a DB round-trip that otherwise runs on EVERY page
-  // navigation. Cache a successful check briefly (module-level; Railway runs a
-  // persistent Node process) so page-to-page navigation doesn't re-hit the DB.
-  // A revoked device keeps working for at most VALIDATION_TTL_MS, which is an
-  // acceptable trade for making navigation feel instant.
+  // The device-session check only refreshes last_seen for the admin devices
+  // list. It never blocks: anyone with a validly signed cookie stays logged in.
+  // Access status and device limits are enforced at login time instead.
   const tokenHash = hashStudentSessionToken(session.session_token);
   const cacheKey = `${session.id}:${session.device_session_id}:${tokenHash}`;
   if (isRecentlyValidated(cacheKey)) {
@@ -62,27 +66,35 @@ export async function requireStudentSession() {
   }
 
   const requestHeaders = await headers();
-  let valid = false;
   try {
-    valid = await validateStudentDeviceSession(createServerSupabaseClient(), {
+    const valid = await validateStudentDeviceSession(createServerSupabaseClient(), {
       studentId: session.id,
       deviceSessionId: session.device_session_id,
       sessionTokenHash: tokenHash,
       userAgent: requestHeaders.get("user-agent")
     });
+    if (valid) rememberValidated(cacheKey);
+    else validatedSessions.delete(cacheKey);
   } catch (error) {
     console.error("Student session validation failed", error);
-    if (isMissingDeviceSessionsError(error)) {
-      return session;
-    }
-    redirect("/login?error=access-setup");
   }
-  if (!valid) {
-    validatedSessions.delete(cacheKey);
-    redirect("/login?error=session-revoked");
-  }
-  rememberValidated(cacheKey);
   return session;
+}
+
+// Sentinel student id for admins previewing student pages: a valid UUID that
+// never matches a real student row, so lookups return empty data instead of
+// throwing on uuid parsing.
+const ADMIN_PREVIEW_STUDENT_ID = "00000000-0000-0000-0000-000000000000";
+
+function adminPreviewSession(admin: AdminSession): StudentSession {
+  return {
+    id: ADMIN_PREVIEW_STUDENT_ID,
+    name: admin.email.split("@")[0] || "Teacher",
+    student_code: "admin-preview",
+    group_id: null,
+    device_session_id: "legacy",
+    session_token: "legacy"
+  };
 }
 
 // Short-lived cache of device-session validations, keyed by student + device +
@@ -121,18 +133,4 @@ export function createStudentSessionToken() {
 
 export function hashStudentSessionToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-function isMissingDeviceSessionsError(error: unknown) {
-  const message = String((error as { message?: string })?.message || "");
-  const code = String((error as { code?: string })?.code || "");
-  return (
-    code === "42P01" ||
-    code === "PGRST205" ||
-    message.includes("student_device_sessions") ||
-    message.includes("schema cache") ||
-    message.includes("Could not find the table") ||
-    message.includes("access_status") ||
-    message.includes("is_active")
-  );
 }
