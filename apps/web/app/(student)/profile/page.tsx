@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createServerSupabaseClient, getStudentById, getStudentDeviceSessions, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getStudentDeviceSessions, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
 import { feedbackSubmissions, formatDate, reviewedSubmissions, scoreLabel } from "../student-utils";
@@ -7,10 +7,7 @@ import { feedbackSubmissions, formatDate, reviewedSubmissions, scoreLabel } from
 export default async function ProfilePage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const [student, submissions] = await Promise.all([
-    getStudentById(supabase, session.id),
-    getStudentSubmissions(supabase, session.id)
-  ]);
+  const submissions = await getStudentSubmissions(supabase, session.id);
   let deviceSessions: Awaited<ReturnType<typeof getStudentDeviceSessions>> = [];
   let deviceTrackingNote = "";
   try {
@@ -26,7 +23,6 @@ export default async function ProfilePage() {
   return (
     <StudentShell
       name={session.name}
-      groupName={student?.groups?.name}
       sectionLabel="Profile"
       sectionDescription="Access ID, recent work, and active devices"
     >
@@ -35,11 +31,7 @@ export default async function ProfilePage() {
           <div>
             <p className="student-kicker">Student profile</p>
             <h1>{session.name}</h1>
-            <p>
-              {student?.groups?.name
-                ? `Your private IELTS workspace is connected to ${student.groups.name}.`
-                : "Your teacher-issued access ID is active. Ask your teacher to assign a group if lessons are missing."}
-            </p>
+              <p>Your teacher-issued access ID is active.</p>
             <div className="student-action-row">
               <Link className="student-primary-button" href="/practice">Continue practice</Link>
               <Link className="student-secondary-button" href="/results">View results</Link>

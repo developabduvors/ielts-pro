@@ -22,7 +22,7 @@ const items = [
   { href: "/practice", label: "Practice", icon: "practice", aliases: ["/practice", "/tests"] },
   { href: "/mock", label: "Mock", icon: "mock", aliases: ["/mock"] },
   { href: "/speaking", label: "Speaking", icon: "speaking", aliases: ["/speaking"] },
-  { href: "/vocabulary", label: "Vocabulary", icon: "vocabulary", aliases: ["/vocabulary"] },
+  { href: "https://vocabulary-trainer-smoky.vercel.app/", label: "Vocabulary", icon: "vocabulary", aliases: ["/vocabulary"], external: true },
   { href: "/analytics", label: "Analytics", icon: "analytics", aliases: ["/analytics", "/results", "/progress"] }
 ];
 
@@ -33,6 +33,14 @@ export function StudentNav() {
     <div className="student-app-nav-list">
       {items.map((item) => {
         const active = item.aliases.some((alias) => pathname === alias || pathname.startsWith(`${alias}/`));
+        if (item.external) {
+          return (
+            <a href={item.href} className={`student-app-nav-link${active ? " is-active" : ""}`} target="_blank" rel="noopener noreferrer" key={item.href}>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">{icons[item.icon]}</svg>
+              <strong>{item.label}</strong>
+            </a>
+          );
+        }
         return (
           <Link href={item.href} className={`student-app-nav-link${active ? " is-active" : ""}`} aria-current={active ? "page" : undefined} key={item.href}>
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">{icons[item.icon]}</svg>

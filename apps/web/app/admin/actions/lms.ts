@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createLesson,
-  createGroup,
   createServerSupabaseClient,
   createStudentAccess,
   createTask,
@@ -12,8 +11,6 @@ import {
   revokeStudentDeviceSession,
   reviewWritingSubmission,
   setStudentAccessStatus,
-  setTaskGroups,
-  updateStudentGroup,
   updateLesson,
   updateSiteSettings,
   updateTasksForLessonStatus,
@@ -31,24 +28,9 @@ export async function createLessonAction(formData: FormData) {
     description: String(formData.get("description") || "").trim() || null,
     order: Number(formData.get("order") || 1),
     published: formData.get("published") === "on",
-    skill: String(formData.get("skill") || "reading"),
-    group_id: text(formData, "group_id") || null
+    skill: String(formData.get("skill") || "reading")
   });
   revalidatePath("/admin/lessons");
-  revalidatePath("/admin/student-control");
-  revalidatePath("/admin/dashboard");
-}
-
-export async function createGroupAction(formData: FormData) {
-  await requireAdminSession();
-  const name = text(formData, "group_name");
-  if (!name) return;
-  await createGroup(createServerSupabaseClient(), {
-    name,
-    order: numberField(formData, "group_order", 10)
-  });
-  revalidatePath("/admin/lessons");
-  revalidatePath("/admin/students");
   revalidatePath("/admin/student-control");
   revalidatePath("/admin/dashboard");
 }
@@ -62,19 +44,8 @@ export async function createStudentAccessAction(formData: FormData) {
   await createStudentAccess(createServerSupabaseClient(), {
     name,
     accessId,
-    groupId: text(formData, "group_id") || null,
     maxDevices: maxDevicesValue ? Number(maxDevicesValue) : null
   });
-  revalidatePath("/admin/students");
-  revalidatePath("/admin/student-control");
-}
-
-export async function updateStudentGroupAction(formData: FormData) {
-  await requireAdminSession();
-  const studentId = text(formData, "student_id");
-  const groupId = text(formData, "group_id") || null;
-  if (!studentId) return;
-  await updateStudentGroup(createServerSupabaseClient(), studentId, groupId);
   revalidatePath("/admin/students");
   revalidatePath("/admin/student-control");
 }
@@ -300,27 +271,6 @@ export async function attachContentToLessonAction(formData: FormData) {
   });
   revalidatePath("/admin/lessons");
   revalidatePath("/admin/full-tests/new");
-  revalidatePath("/admin/dashboard");
-}
-
-export async function updateTaskGroupsAction(formData: FormData) {
-  await requireAdminSession();
-  const taskId = text(formData, "task_id");
-  if (!taskId) return;
-  const groupIds = formData.getAll("group_ids").map((value) => String(value)).filter(Boolean);
-  await setTaskGroups(createServerSupabaseClient(), taskId, groupIds);
-  revalidatePath("/admin/lessons");
-  revalidatePath("/admin/dashboard");
-  revalidatePath("/admin/full-tests/new");
-}
-
-export async function updateLessonGroupAction(formData: FormData) {
-  await requireAdminSession();
-  const lessonId = text(formData, "lesson_id");
-  const groupId = text(formData, "group_id") || null;
-  if (!lessonId) return;
-  await updateLesson(createServerSupabaseClient(), lessonId, { group_id: groupId });
-  revalidatePath("/admin/lessons");
   revalidatePath("/admin/dashboard");
 }
 

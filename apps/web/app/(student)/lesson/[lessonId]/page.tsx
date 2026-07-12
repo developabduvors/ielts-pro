@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentById, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../../components/StudentShell";
 import {
@@ -14,10 +14,8 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ l
   const { lessonId } = await params;
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
-  const currentGroupId = student?.group_id ?? session.group_id;
   const [{ lessons, tasks }, submissions] = await Promise.all([
-    getPublishedTasksForStudent(supabase, currentGroupId),
+    getPublishedTasksForStudent(supabase),
     getStudentSubmissions(supabase, session.id)
   ]);
   const lesson = lessons.find((item) => item.id === lessonId);
@@ -28,7 +26,6 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ l
   return (
     <StudentShell
       name={session.name}
-      groupName={student?.groups?.name}
       sectionLabel="Lesson"
       sectionDescription={lesson.title}
     >

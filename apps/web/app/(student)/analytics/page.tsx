@@ -1,18 +1,23 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentById, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
+import { HistoryTable } from "./HistoryTable";
 import {
   averageScore,
   completionState,
   feedbackSubmissions,
   formatDate,
+  formatTimeTaken,
   labelForSkill,
+  overallBandScore,
+  perSkillStats,
   progressBySkill,
   reviewedSubmissions,
   scoreLabel,
   submissionsForSkill,
+  submissionsForSkills,
   toneForSkill,
   trendLabel
 } from "../student-utils";
@@ -20,12 +25,20 @@ import {
 export default async function AnalyticsPage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
-  const currentGroupId = student?.group_id ?? session.group_id;
-  const [{ tasks }, submissions] = await Promise.all([
-    getPublishedTasksForStudent(supabase, currentGroupId),
-    getStudentSubmissions(supabase, session.id)
-  ]);
+  let tasks: Awaited<ReturnType<typeof getPublishedTasksForStudent>>["tasks"] = [];
+  let submissions: Awaited<ReturnType<typeof getStudentSubmissions>> = [];
+
+  try {
+    const [tasksResult, submissionsResult] = await Promise.all([
+      getPublishedTasksForStudent(supabase),
+      getStudentSubmissions(supabase, session.id)
+    ]);
+    tasks = tasksResult.tasks;
+    submissions = submissionsResult;
+  } catch (err) {
+    console.error("[AnalyticsPage] failed to load data:", err);
+  }
+
   const progress = completionState(tasks, submissions);
   const reviewed = reviewedSubmissions(submissions);
   const feedback = feedbackSubmissions(submissions);
@@ -33,8 +46,23 @@ export default async function AnalyticsPage() {
   const skills = progressBySkill(tasks, submissions);
   const trend = trendLabel(submissions);
 
+  const rlSubmissions = submissionsForSkills(submissions, ["reading", "listening"]);
+  const rlScored = rlSubmissions.filter((s) => s.score != null && s.total);
+  const band = overallBandScore(submissions);
+  const readingStats = perSkillStats(submissions, "reading");
+  const listeningStats = perSkillStats(submissions, "listening");
+
+  const rlHistory = rlScored
+    .slice()
+    .sort((a, b) => new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime());
+
+  const allScored = submissions
+    .filter((s) => s.score != null)
+    .slice()
+    .sort((a, b) => new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime());
+
   return (
-    <StudentShell name={session.name} groupName={student?.groups?.name} sectionLabel="Analytics" sectionDescription="Progress, skill balance, and teacher feedback signals">
+    <StudentShell name={session.name} sectionLabel="Analytics" sectionDescription="Progress, skill balance, and teacher feedback signals">
       <main className="student-page student-analytics-page">
         <section className="student-hero-panel compact">
           <div>
@@ -57,6 +85,37 @@ export default async function AnalyticsPage() {
           <MetricCard label="Feedback" value={feedback.length} note="teacher notes" />
         </section>
 
+        <section className="student-stat-grid" aria-label="Per-skill summary">
+          <MetricCard label="Reading" value={readingStats.count > 0 ? `${readingStats.count} tests` : "-"} note={readingStats.avgBand != null ? `avg band ${readingStats.avgBand.toFixed(1)}` : "no data yet"} />
+          <MetricCard label="Listening" value={listeningStats.count > 0 ? `${listeningStats.count} tests` : "-"} note={listeningStats.avgBand != null ? `avg band ${listeningStats.avgBand.toFixed(1)}` : "no data yet"} />
+        </section>
+
+        <section className="student-panel">
+          <div className="student-section-header">
+            <div>
+              <p className="student-kicker">Reading &amp; Listening</p>
+              <h2>Overall band score</h2>
+            </div>
+          </div>
+          <div className="student-band-overview">
+            <div className="student-metric-card">
+              <span>Overall band</span>
+              <strong>{band != null ? band.toFixed(1) : "-"}</strong>
+              <small>{rlScored.length} test{rlScored.length !== 1 ? "s" : ""}</small>
+            </div>
+            <div className="student-skills-mini">
+              <div className="student-skill-mini-card">
+                <strong>{readingStats.avgBand != null ? readingStats.avgBand.toFixed(1) : "-"}</strong>
+                <span>Reading &middot; {readingStats.count} test{readingStats.count !== 1 ? "s" : ""} &middot; avg {readingStats.avgScore != null ? readingStats.avgScore.toFixed(1) : "-"}</span>
+              </div>
+              <div className="student-skill-mini-card">
+                <strong>{listeningStats.avgBand != null ? listeningStats.avgBand.toFixed(1) : "-"}</strong>
+                <span>Listening &middot; {listeningStats.count} test{listeningStats.count !== 1 ? "s" : ""} &middot; avg {listeningStats.avgScore != null ? listeningStats.avgScore.toFixed(1) : "-"}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="student-two-column">
           <article className="student-panel">
             <div className="student-section-header">
@@ -74,7 +133,7 @@ export default async function AnalyticsPage() {
                     <span className={`student-skill-icon tone-${toneForSkill(skill.key)}`}>{skill.mark}</span>
                     <div>
                       <strong>{skill.label}</strong>
-                      <small>{skill.done}/{skill.total} completed · {reviewedSkill} reviewed</small>
+                      <small>{skill.done}/{skill.total} completed &middot; {reviewedSkill} reviewed</small>
                       <div className="student-row-bar" style={{ "--student-progress": `${skill.percent}%` } as CSSProperties} />
                     </div>
                     <em>{skill.percent}%</em>
@@ -95,6 +154,55 @@ export default async function AnalyticsPage() {
           </article>
         </section>
 
+        {readingStats.count > 0 || listeningStats.count > 0 ? (
+          <section className="student-panel">
+            <div className="student-section-header">
+              <div>
+                <p className="student-kicker">Strengths &amp; Weaknesses</p>
+                <h2>Reading vs Listening</h2>
+              </div>
+            </div>
+            <div className="student-sw-grid">
+              {readingStats.avgBand != null && listeningStats.avgBand != null ? (
+                <>
+                  <div className="student-sw-card sw-strength">
+                    <h3>{(readingStats.avgBand || 0) >= (listeningStats.avgBand || 0) ? "Reading" : "Listening"}</h3>
+                    <p>{(readingStats.avgBand || 0) >= (listeningStats.avgBand || 0) ? readingStats.avgBand?.toFixed(1) : listeningStats.avgBand?.toFixed(1)} band &mdash; above the other by {Math.abs((readingStats.avgBand || 0) - (listeningStats.avgBand || 0)).toFixed(1)}</p>
+                  </div>
+                  <div className="student-sw-card sw-weakness">
+                    <h3>{(readingStats.avgBand || 0) < (listeningStats.avgBand || 0) ? "Reading" : "Listening"}</h3>
+                    <p>{(readingStats.avgBand || 0) < (listeningStats.avgBand || 0) ? readingStats.avgBand?.toFixed(1) : listeningStats.avgBand?.toFixed(1)} band &mdash; focus here to balance your score</p>
+                  </div>
+                </>
+              ) : (
+                <div className="student-empty-card">
+                  <h3>Not enough data</h3>
+                  <p>Complete at least one Reading and one Listening test to see your strengths.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="student-panel">
+          <div className="student-section-header">
+            <div>
+              <p className="student-kicker">Test history</p>
+              <h2>All attempts</h2>
+            </div>
+            <Link href="/results">All results</Link>
+          </div>
+          <HistoryTable submissions={allScored.map((s) => ({
+            id: s.id,
+            score: s.score,
+            total: s.total,
+            time_taken: s.time_taken,
+            submitted_at: s.submitted_at,
+            answer: s.answer,
+            tasks: s.tasks,
+          }))} />
+        </section>
+
         <section className="student-panel">
           <div className="student-section-header">
             <div>
@@ -109,7 +217,7 @@ export default async function AnalyticsPage() {
                 <span className={`student-skill-icon tone-${toneForSkill(submission.tasks?.skill)}`}>{labelForSkill(submission.tasks?.skill).slice(0, 1)}</span>
                 <div>
                   <strong>{submission.tasks?.title || "Practice task"}</strong>
-                  <small>{labelForSkill(submission.tasks?.skill)} · {formatDate(submission.submitted_at, { dateStyle: "medium", timeStyle: "short" })}</small>
+                  <small>{labelForSkill(submission.tasks?.skill)} &middot; {formatDate(submission.submitted_at, { dateStyle: "medium", timeStyle: "short" })}</small>
                 </div>
                 <em>{scoreLabel(submission)}</em>
               </article>

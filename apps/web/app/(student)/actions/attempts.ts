@@ -1,25 +1,33 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { buildRenderableQuestions, createServerSupabaseClient, getPublishedTaskByIdForStudent, getStudentById, gradeQuestions, parseTaskContent, submitAttempt, type TaskContent } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 
-export async function submitTaskAttempt(formData: FormData) {
+export async function submitTaskAttempt(formData: FormData): Promise<{
+  ok: boolean;
+  score?: number;
+  total?: number;
+  details?: Array<{ questionIndex: number; subIndex?: number; isCorrect: boolean | null; your: string; right: string }>;
+  redirect?: string;
+  error?: string;
+}> {
   const session = await requireStudentSession();
   const taskId = String(formData.get("taskId") || "");
+  const timeTakenRaw = Number(formData.get("timeTaken"));
+  const timeTaken = Number.isFinite(timeTakenRaw) ? Math.round(timeTakenRaw) : null;
   const supabase = createServerSupabaseClient();
   const student = await getStudentById(supabase, session.id);
-  const task = await getPublishedTaskByIdForStudent(supabase, taskId, student?.group_id ?? session.group_id);
-  if (!task) redirect("/dashboard?error=unavailable");
+  const task = await getPublishedTaskByIdForStudent(supabase, taskId);
+  if (!task) return { ok: false, error: "unavailable" };
 
   const content = parseTaskContent<TaskContent>(task.content, { questions: [] });
   const questions = buildRenderableQuestions(content, task);
 
   if (task.skill === "writing") {
     const answer = String(formData.get("writing_answer") || "").trim();
-    if (!answer) redirect(`/tests/${taskId}?error=empty`);
-    await submitAttempt(supabase, { studentId: session.id, taskId, answer });
-    redirect("/results?submitted=writing");
+    if (!answer) return { ok: false, error: "empty" };
+    await submitAttempt(supabase, { studentId: session.id, taskId, answer, timeTaken });
+    return { ok: true, redirect: "/results?submitted=writing" };
   }
 
   const answers: Record<string, unknown> = {};
@@ -39,7 +47,7 @@ export async function submitTaskAttempt(formData: FormData) {
     answers[String(index)] = String(formData.get(`q_${index}`) || "").trim();
   });
 
-  const { correct, total } = gradeQuestions(questions, answers);
+  const { correct, total, details } = gradeQuestions(questions, answers);
   const fullWritingAnswer = String(formData.get("full_writing_answer") || "").trim();
   if (task.skill === "full_test" && fullWritingAnswer) {
     answers.writing_response = fullWritingAnswer;
@@ -49,7 +57,9 @@ export async function submitTaskAttempt(formData: FormData) {
     taskId,
     answer: JSON.stringify(answers),
     score: correct,
-    total
+    total,
+    timeTaken
   });
-  redirect("/results?submitted=test");
+
+  return { ok: true, score: correct, total, details };
 }

@@ -71,8 +71,9 @@ export async function requireStudentSession() {
     });
     if (valid) rememberValidated(cacheKey);
     else validatedSessions.delete(cacheKey);
-  } catch (error) {
-    console.error("Student session validation failed", error);
+  } catch {
+    // Device-session validation is non-critical. If the table doesn't exist or the
+    // network is down, the student stays logged in without it.
   }
   return session;
 }

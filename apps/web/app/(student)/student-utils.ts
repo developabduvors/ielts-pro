@@ -1,6 +1,7 @@
 import {
   inferQuestionCount,
   parseTaskContent,
+  scoreToBand,
   type Lesson,
   type Submission,
   type Task,
@@ -127,6 +128,14 @@ export function formatDate(value?: string | null, options?: Intl.DateTimeFormatO
 export function scoreLabel(submission: Submission) {
   if (submission.score == null) return "Pending review";
   return `${submission.score}/${submission.total ?? "band"}`;
+}
+
+export function formatTimeTaken(seconds?: number | null) {
+  if (seconds == null || seconds <= 0) return null;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s}s`;
 }
 
 export function progressBySkill(tasks: Task[], submissions: Submission[]) {
@@ -256,4 +265,50 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
     .join(" ");
+}
+
+export type SkillStats = {
+  count: number;
+  avgScore: number | null;
+  avgBand: number | null;
+  minScore: number | null;
+  maxScore: number | null;
+};
+
+export function perSkillStats(submissions: Submission[], skill: string): SkillStats {
+  const filtered = submissions.filter(
+    (s) => normaliseSkill(s.tasks?.skill) === normaliseSkill(skill) && s.score != null && s.total
+  );
+  const scores = filtered.map((s) => Number(s.score));
+  const total = filtered[0]?.total ?? 40;
+  if (!scores.length) return { count: 0, avgScore: null, avgBand: null, minScore: null, maxScore: null };
+  const sum = scores.reduce((a, b) => a + b, 0);
+  const avgScore = Number((sum / scores.length).toFixed(1));
+  const avgBand = scoreToBand(skill, Math.round(avgScore), Number(total));
+  return {
+    count: scores.length,
+    avgScore,
+    avgBand,
+    minScore: Math.min(...scores),
+    maxScore: Math.max(...scores),
+  };
+}
+
+export function overallBandScore(submissions: Submission[]) {
+  const rl = submissions.filter(
+    (s) => {
+      const skill = normaliseSkill(s.tasks?.skill);
+      return (skill === "reading" || skill === "listening") && s.score != null && s.total;
+    }
+  );
+  if (!rl.length) return null;
+  const bands = rl.map((s) => scoreToBand(s.tasks?.skill || "", Number(s.score), Number(s.total))).filter((b) => b != null) as number[];
+  if (!bands.length) return null;
+  const avg = bands.reduce((a, b) => a + b, 0) / bands.length;
+  return Number(avg.toFixed(1));
+}
+
+export function submissionsForSkills(submissions: Submission[], skills: string[]) {
+  const wanted = skills.map((s) => normaliseSkill(s));
+  return submissions.filter((s) => wanted.includes(normaliseSkill(s.tasks?.skill)));
 }

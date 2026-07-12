@@ -33,7 +33,6 @@ export async function studentLogin(_: { error?: string } | undefined, formData: 
         id: rpc.student.id,
         name: rpc.student.name,
         student_code: rpc.student.student_code,
-        group_id: rpc.student.group_id,
         device_session_id: rpc.device_session_id || "legacy",
         session_token: token
       });
@@ -82,7 +81,6 @@ export async function studentLogin(_: { error?: string } | undefined, formData: 
       id: student.id,
       name: student.name,
       student_code: student.student_code,
-      group_id: student.group_id,
       device_session_id: deviceSessionId,
       session_token: sessionToken
     });
@@ -98,7 +96,7 @@ export async function studentLogin(_: { error?: string } | undefined, formData: 
 type StudentLoginRpcResult = {
   outcome: "ok" | "not_found" | "closed" | "device_limit";
   device_session_id?: string;
-  student?: { id: string; name: string; student_code: string; group_id: string | null };
+  student?: { id: string; name: string; student_code: string };
 };
 
 // Returns the RPC result, or null when the function is not deployed so the

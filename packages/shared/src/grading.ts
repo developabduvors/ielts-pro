@@ -16,14 +16,26 @@ export function countWords(value: string) {
 export function gradeQuestions(questions: Question[], answers: Record<string, unknown>) {
   let correct = 0;
   let total = 0;
+  const details: Array<{
+    questionIndex: number;
+    subIndex?: number;
+    isCorrect: boolean | null;
+    your: string;
+    right: string;
+  }> = [];
 
   questions.forEach((q, index) => {
     const saved = answers[String(index)];
+
     if ((q.type === "matching" || q.type === "sentence_endings") && q.items?.length) {
       const savedMatch = isRecord(saved) ? saved : {};
       for (const [itemIndex, item] of (q.items || []).entries()) {
         total++;
-        if (isCorrectAnswer(savedMatch[String(itemIndex)], item.answer)) correct++;
+        const your = String(savedMatch[String(itemIndex)] || "");
+        const right = String(item.answer || "");
+        const isCorrectVal = your ? isCorrectAnswer(savedMatch[String(itemIndex)], item.answer) : null;
+        if (isCorrectVal === true) correct++;
+        details.push({ questionIndex: index, subIndex: itemIndex, isCorrect: isCorrectVal, your, right });
       }
       return;
     }
@@ -32,7 +44,11 @@ export function gradeQuestions(questions: Question[], answers: Record<string, un
       const savedMatch = isRecord(saved) ? saved : {};
       for (const [itemIndex, item] of (q.items || []).entries()) {
         total++;
-        if (isCorrectAnswer(savedMatch[String(itemIndex)], item.answer)) correct++;
+        const your = String(savedMatch[String(itemIndex)] || "");
+        const right = String(item.answer || "");
+        const isCorrectVal = your ? isCorrectAnswer(savedMatch[String(itemIndex)], item.answer) : null;
+        if (isCorrectVal === true) correct++;
+        details.push({ questionIndex: index, subIndex: itemIndex, isCorrect: isCorrectVal, your, right });
       }
       return;
     }
@@ -40,22 +56,35 @@ export function gradeQuestions(questions: Question[], answers: Record<string, un
     if (q.type === "mcq_multi") {
       const expected = Array.isArray(q.answer) ? q.answer : [];
       const actual = Array.isArray(saved) ? saved.map(String) : [];
-      total += expected.length;
-      expected.forEach((letter) => {
-        if (actual.includes(letter)) correct++;
-      });
+      for (const [optIndex, letter] of expected.entries()) {
+        total++;
+        const your = actual.includes(letter) ? letter : (actual[optIndex] || "");
+        const right = String(letter);
+        const isCorrectVal = your ? actual.includes(letter) : null;
+        if (isCorrectVal === true) correct++;
+        details.push({ questionIndex: index, subIndex: optIndex, isCorrect: isCorrectVal, your, right });
+      }
       return;
     }
 
     total++;
-    if (["gap_fill", "short_answer", "matching", "sentence_endings"].includes(q.type)) {
-      if (isCorrectAnswer(saved, q.answer)) correct++;
-    } else if (["tfng", "ynng", "mcq"].includes(q.type)) {
-      if (isCorrectAnswer(saved, q.answer)) correct++;
+    const your = String(saved || "");
+    const right = String(q.answer || "");
+    if (!your) {
+      details.push({ questionIndex: index, isCorrect: null, your: "", right });
+      return;
     }
+    let isCorrectVal = false;
+    if (["gap_fill", "short_answer", "matching", "sentence_endings"].includes(q.type)) {
+      isCorrectVal = isCorrectAnswer(saved, q.answer);
+    } else if (["tfng", "ynng", "mcq"].includes(q.type)) {
+      isCorrectVal = isCorrectAnswer(saved, q.answer);
+    }
+    if (isCorrectVal) correct++;
+    details.push({ questionIndex: index, isCorrect: isCorrectVal, your, right });
   });
 
-  return { correct, total };
+  return { correct, total, details };
 }
 
 export function flattenQuestions(content: TaskContent): Question[] {

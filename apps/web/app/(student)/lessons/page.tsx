@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentById, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
 import {
@@ -14,10 +14,8 @@ import {
 export default async function LessonsPage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
-  const currentGroupId = student?.group_id ?? session.group_id;
   const [{ lessons, tasks }, submissions] = await Promise.all([
-    getPublishedTasksForStudent(supabase, currentGroupId),
+    getPublishedTasksForStudent(supabase),
     getStudentSubmissions(supabase, session.id)
   ]);
   const progress = completionState(tasks, submissions);
@@ -27,7 +25,6 @@ export default async function LessonsPage() {
   return (
     <StudentShell
       name={session.name}
-      groupName={student?.groups?.name}
       sectionLabel="Lessons"
       sectionDescription="Teacher-published lesson plan and assigned tasks"
     >
@@ -73,7 +70,7 @@ export default async function LessonsPage() {
           {!lessonGroups.length ? (
             <div className="student-empty-card">
               <h3>No lessons yet</h3>
-              <p>{currentGroupId ? "Ask your teacher to publish lessons for your group." : "Ask your teacher to assign your Student Access ID to a group."}</p>
+              <p>Ask your teacher to publish lessons.</p>
             </div>
           ) : null}
         </section>

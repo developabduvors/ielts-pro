@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { Badge, Button, Card, EmptyState, Input, Select, StatCard, Table, Textarea } from "@ielts-pro/ui";
-import { createServerSupabaseClient, getAllGroups, getAllLessons, getAllTasks, getTaskGroupsMap, parseTaskContent, type Group, type Task, type TaskContent } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getAllLessons, getAllTasks, parseTaskContent, type Task, type TaskContent } from "@ielts-pro/shared";
 import { requireAdminSession } from "@/lib/admin-session";
 import { AdminShell } from "../components/AdminShell";
-import { attachContentToLessonAction, createGroupAction, createLessonAction, toggleLessonPublishAction, updateLessonGroupAction, updateTaskGroupsAction } from "../actions/lms";
+import { attachContentToLessonAction, createLessonAction, toggleLessonPublishAction } from "../actions/lms";
 
 export default async function LessonsPage() {
   const admin = await requireAdminSession();
   const supabase = createServerSupabaseClient();
-  const [groups, lessons, tasks] = await Promise.all([
-    getAllGroups(supabase),
+  const [lessons, tasks] = await Promise.all([
     getAllLessons(supabase),
     getAllTasks(supabase)
   ]);
-  const taskGroupsMap = await getTaskGroupsMap(supabase, tasks.map((task) => task.id));
   const publishedLessons = lessons.filter((lesson) => lesson.published);
   const draftLessons = lessons.filter((lesson) => !lesson.published);
   const draftContent = tasks.filter((task) => !task.lessons?.published || task.content_status === "draft");
@@ -38,13 +36,10 @@ export default async function LessonsPage() {
         <StatCard label="Imported content" value={importedContent.length} note={`${draftContent.length} draft or hidden`} />
         <StatCard label="Published lessons" value={publishedLessons.length} note="visible after group match" />
         <StatCard label="Draft lessons" value={draftLessons.length} note="teacher-only" />
-        <StatCard label="Groups" value={groups.length} note="student paths" />
       </section>
 
       <div className="studio-tabs" aria-label="Content studio sections">
         <a href="#library">Library</a>
-        <a href="#assign-groups">Test → Groups</a>
-        <a href="#groups">Groups & Lessons</a>
         <a href="#lesson-builder">Lesson Builder</a>
         <a href="#visibility">Visibility Matrix</a>
       </div>
@@ -116,7 +111,6 @@ export default async function LessonsPage() {
                       </td>
                       <td>
                         <strong>{task.lessons?.title || "No lesson"}</strong>
-                        <p className="table-note">{task.lessons?.groups?.name || "No group assigned"}</p>
                       </td>
                       <td>
                         <form action={attachContentToLessonAction} className="inline-form">
@@ -137,89 +131,6 @@ export default async function LessonsPage() {
         </Card>
       </section>
 
-      <section className="studio-section" id="assign-groups">
-        <Card className="panel">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Test → Groups</p>
-              <h2>Assign each test to groups</h2>
-              <p className="muted">Check the groups that should see a test, then Save. A test with no group checked is hidden from every student. Checking a group makes it visible to that group immediately.</p>
-            </div>
-          </div>
-          {tasks.length ? (
-            <div className="task-group-board">
-              {tasks.map((task) => {
-                const assigned = new Set(taskGroupsMap.get(task.id) || []);
-                const live = assigned.size > 0;
-                return (
-                  <form action={updateTaskGroupsAction} className="task-group-card" key={task.id}>
-                    <input type="hidden" name="task_id" value={task.id} />
-                    <div className="task-group-head">
-                      <div>
-                        <strong>{task.title}</strong>
-                        <p className="table-note">{labelFor(task.skill)} · {task.lessons?.title || "No lesson"}</p>
-                      </div>
-                      {live ? <Badge tone="success">Visible to {assigned.size} group(s)</Badge> : <Badge tone="warning">Hidden</Badge>}
-                    </div>
-                    <div className="task-group-checks">
-                      {groups.length ? groups.map((group: Group) => (
-                        <label className="task-group-check" key={group.id}>
-                          <input type="checkbox" name="group_ids" value={group.id} defaultChecked={assigned.has(group.id)} />
-                          <span>{group.name}</span>
-                        </label>
-                      )) : <span className="muted">Create a group first.</span>}
-                    </div>
-                    <Button variant="secondary">Save groups</Button>
-                  </form>
-                );
-              })}
-            </div>
-          ) : <EmptyState title="No tests yet" body="Import a test in Test Builder, then assign it to groups here." action={<Link className="btn btn-primary" href="/admin/full-tests/new">Open Test Builder</Link>} />}
-        </Card>
-      </section>
-
-      <section className="studio-section studio-columns" id="groups">
-        <Card className="panel">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Groups & Lessons</p>
-              <h2>Student paths</h2>
-              <p className="muted">Default groups are seeded idempotently. A published lesson can be connected to one group or kept legacy/global.</p>
-            </div>
-          </div>
-          <div className="group-board">
-            {groups.map((group) => {
-              const groupLessons = lessons.filter((lesson) => lesson.group_id === group.id);
-              return (
-                <article className="group-card" key={group.id}>
-                  <div>
-                    <Badge tone="neutral">{group.slug || "group"}</Badge>
-                    <h3>{group.name}</h3>
-                    <p className="muted">{groupLessons.length} lesson(s) assigned</p>
-                  </div>
-                  <div className="mini-lesson-list">
-                    {groupLessons.slice(0, 4).map((lesson) => (
-                      <span key={lesson.id}>{lesson.published ? "Live" : "Draft"} - {lesson.title}</span>
-                    ))}
-                    {!groupLessons.length ? <span>No lessons assigned yet</span> : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card className="panel">
-          <p className="eyebrow">Create group</p>
-          <h2>New student path</h2>
-          <form action={createGroupAction} className="form-stack compact-form">
-            <label>Group name<Input name="group_name" required placeholder="Foundation group" /></label>
-            <label>Order<Input name="group_order" type="number" min="1" defaultValue={groups.length + 1} /></label>
-            <Button>Create group</Button>
-          </form>
-        </Card>
-      </section>
-
       <section className="studio-section studio-columns" id="lesson-builder">
         <Card className="panel">
           <div className="section-head">
@@ -231,35 +142,12 @@ export default async function LessonsPage() {
           </div>
           <form action={createLessonAction} className="lesson-builder-form lesson-builder-form-readable">
             <label>Title<Input name="title" required placeholder="Week 3 Reading focus" /></label>
-            <label>Group<Select name="group_id" defaultValue=""><option value="">No group yet</option>{groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</Select></label>
             <label>Skill<Select name="skill" defaultValue="reading"><option value="reading">Reading</option><option value="listening">Listening</option><option value="writing">Writing</option><option value="full_test">Full test</option></Select></label>
             <label>Order<Input name="order" type="number" defaultValue={lessons.length + 1} min={1} /></label>
             <label className="span-2">Description<Textarea name="description" placeholder="Teacher note shown on student lesson card." /></label>
             <label className="check-row"><input type="checkbox" name="published" /> Publish now</label>
             <Button>Create lesson</Button>
           </form>
-        </Card>
-
-        <Card className="panel">
-          <p className="eyebrow">Lesson assignment</p>
-          <h2>Set group for existing lesson</h2>
-          <div className="lesson-assignment-list">
-            {lessons.map((lesson) => (
-              <form action={updateLessonGroupAction} className="assignment-row" key={lesson.id}>
-                <input type="hidden" name="lesson_id" value={lesson.id} />
-                <div>
-                  <strong>{lesson.title}</strong>
-                  <p className="table-note">{lesson.published ? "Published" : "Draft"} · {lesson.groups?.name || "No group"}</p>
-                </div>
-                <Select name="group_id" defaultValue={lesson.group_id || ""}>
-                  <option value="">No group</option>
-                  {groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}
-                </Select>
-                <Button variant="secondary">Save</Button>
-              </form>
-            ))}
-            {!lessons.length ? <EmptyState title="No lessons" body="Create a lesson shell first." /> : null}
-          </div>
         </Card>
       </section>
 
@@ -274,7 +162,7 @@ export default async function LessonsPage() {
           </div>
           {tasks.length ? (
             <Table>
-              <thead><tr><th>Task</th><th>Skill</th><th>Group</th><th>Status</th><th>Student route</th></tr></thead>
+              <thead><tr><th>Task</th><th>Skill</th><th>Status</th><th>Student route</th></tr></thead>
               <tbody>
                 {tasks.map((task) => {
                   const published = task.lessons?.published === true;
@@ -282,7 +170,6 @@ export default async function LessonsPage() {
                     <tr key={task.id}>
                       <td><strong>{task.title}</strong><br /><small>{task.lessons?.title || "No lesson"}</small></td>
                       <td><Badge tone={toneFor(task.skill)}>{labelFor(task.skill)}</Badge></td>
-                      <td>{task.lessons?.groups?.name || <span className="muted">No group</span>}</td>
                       <td>
                         <div className="status-control-stack">
                           {published ? <Badge tone="success">Visible</Badge> : <Badge tone="warning">Hidden</Badge>}

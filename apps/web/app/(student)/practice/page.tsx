@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { createServerSupabaseClient, getStudentById } from "@ielts-pro/shared";
+import { createServerSupabaseClient } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
 
@@ -28,10 +28,9 @@ const CARDS: Array<{ key: string; label: string; href: string; tone: string; met
 export default async function PracticePage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
 
   return (
-    <StudentShell name={session.name} groupName={student?.groups?.name || "Group pending"}>
+    <StudentShell name={session.name}>
       <main className="student-page student-practice">
         <section className="student-practice-grid" aria-label="Choose an IELTS skill">
           {CARDS.map((card) => (

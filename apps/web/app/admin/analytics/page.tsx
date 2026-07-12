@@ -1,15 +1,11 @@
 import { Badge, Card, EmptyState, StatCard, Table } from "@ielts-pro/ui";
-import { createServerSupabaseClient, getAdminDashboardStats, getAllGroups } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getAdminDashboardStats } from "@ielts-pro/shared";
 import { requireAdminSession } from "@/lib/admin-session";
 import { AdminShell } from "../components/AdminShell";
 
 export default async function AnalyticsPage() {
   const admin = await requireAdminSession();
-  const supabase = createServerSupabaseClient();
-  const [stats, groups] = await Promise.all([
-    getAdminDashboardStats(supabase),
-    getAllGroups(supabase)
-  ]);
+  const stats = await getAdminDashboardStats(createServerSupabaseClient());
   const scored = stats.submissions.filter((submission) => submission.score != null);
   const reading = scored.filter((submission) => submission.tasks?.skill === "reading");
   const listening = scored.filter((submission) => submission.tasks?.skill === "listening");
@@ -21,7 +17,7 @@ export default async function AnalyticsPage() {
         <div>
           <p className="eyebrow">Analytics</p>
           <h1>Progress signals without fake charts.</h1>
-          <p className="muted">Real submission, content, group, and writing-review data from Supabase.</p>
+          <p className="muted">Real submission, content, and writing-review data from Supabase.</p>
         </div>
       </div>
 
@@ -33,32 +29,6 @@ export default async function AnalyticsPage() {
       </section>
 
       <div className="panel-grid">
-        <Card className="panel">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Group progress</p>
-              <h2>Groups and student counts</h2>
-            </div>
-          </div>
-          <Table>
-            <thead><tr><th>Group</th><th>Students</th><th>Published lessons</th><th>Status</th></tr></thead>
-            <tbody>
-              {groups.map((group) => {
-                const studentCount = stats.students.filter((student) => student.group_id === group.id).length;
-                const lessonCount = stats.lessons.filter((lesson) => lesson.group_id === group.id && lesson.published).length;
-                return (
-                  <tr key={group.id}>
-                    <td><strong>{group.name}</strong><p className="table-note">{group.slug || "group"}</p></td>
-                    <td>{studentCount}</td>
-                    <td>{lessonCount}</td>
-                    <td>{lessonCount ? <Badge tone="success">Active path</Badge> : <Badge tone="warning">Needs lesson</Badge>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </Card>
-
         <Card className="panel">
           <div className="section-head">
             <div>

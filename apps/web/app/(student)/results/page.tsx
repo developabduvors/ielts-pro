@@ -6,6 +6,7 @@ import {
   averageScore,
   feedbackSubmissions,
   formatDate,
+  formatTimeTaken,
   labelForSkill,
   reviewedSubmissions,
   scoreLabel,
@@ -56,7 +57,7 @@ export default async function ResultsPage() {
                 <span className={`student-skill-icon tone-${toneForSkill(submission.tasks?.skill)}`}>{labelForSkill(submission.tasks?.skill).slice(0, 1)}</span>
                 <div>
                   <strong>{submission.tasks?.title || "Practice task"}</strong>
-                  <small>{labelForSkill(submission.tasks?.skill)} · {formatDate(submission.submitted_at, { dateStyle: "medium", timeStyle: "short" })}</small>
+                  <small>{labelForSkill(submission.tasks?.skill)} &middot; {formatDate(submission.submitted_at, { dateStyle: "medium", timeStyle: "short" })}{submission.time_taken ? ` \u00B7 ${formatTimeTaken(submission.time_taken)}` : ""}</small>
                   {submission.feedback ? <p>{submission.feedback}</p> : null}
                 </div>
                 <em>{scoreLabel(submission)}</em>

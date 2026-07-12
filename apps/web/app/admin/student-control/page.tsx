@@ -82,7 +82,7 @@ export default async function StudentControlPage() {
                 <tr key={student.id}>
                   <td>
                     <strong>{student.name}</strong>
-                    <p className="table-note">{student.groups?.name || "No group"} · ID {student.student_code}</p>
+                    <p className="table-note">ID {student.student_code}</p>
                   </td>
                   <td>
                     <strong>{formatActivityWindow(studentSessions)}</strong>

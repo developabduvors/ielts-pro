@@ -1,26 +1,15 @@
 export type Skill = "reading" | "listening" | "writing" | "full_test" | "vocabulary";
 
-export type Group = {
-  id: string;
-  name: string;
-  slug?: string | null;
-  order?: number | null;
-  created_at?: string;
-  updated_at?: string;
-};
-
 export type Student = {
   id: string;
   name: string;
   student_code: string;
-  group_id: string | null;
   is_active?: boolean | null;
   access_status?: "open" | "closed" | string | null;
   max_devices?: number | null;
   last_login_at?: string | null;
   created_at?: string;
   updated_at?: string;
-  groups?: Pick<Group, "name"> | null;
 };
 
 export type Lesson = {
@@ -31,10 +20,8 @@ export type Lesson = {
   published: boolean | null;
   status?: "draft" | "published" | "archived" | string | null;
   skill: Skill | string | null;
-  group_id?: string | null;
   created_at?: string;
   updated_at?: string;
-  groups?: Pick<Group, "name" | "slug"> | null;
 };
 
 export type Task = {
@@ -59,7 +46,7 @@ export type Task = {
   archived_at?: string | null;
   updated_at?: string;
   created_at?: string;
-  lessons?: Pick<Lesson, "title" | "published" | "group_id"> & { groups?: Pick<Group, "name" | "slug"> | null } | null;
+  lessons?: Pick<Lesson, "title" | "published"> | null;
 };
 
 export type NewTaskInput = Pick<Task, "lesson_id" | "title" | "skill" | "task_type" | "content" | "order"> & {
@@ -84,6 +71,7 @@ export type Submission = {
   score: number | null;
   total: number | null;
   feedback: string | null;
+  time_taken: number | null;
   submitted_at: string;
   students?: Pick<Student, "name" | "student_code"> | null;
   tasks?: (Pick<Task, "title" | "skill"> & { lessons?: Pick<Lesson, "title"> | null }) | null;
@@ -149,7 +137,7 @@ export type TaskContent = {
   preview_text?: string;
 };
 
-export type StudentSession = Pick<Student, "id" | "name" | "student_code" | "group_id"> & {
+export type StudentSession = Pick<Student, "id" | "name" | "student_code"> & {
   device_session_id: string;
   session_token: string;
 };

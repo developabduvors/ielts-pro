@@ -1,23 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, EmptyState, Input, QuestionNavigator } from "@ielts-pro/ui";
-import { buildRenderableQuestions, createServerSupabaseClient, getPublishedTaskByIdForStudent, getStudentById, getSubmissionForTask, getTaskAudioUrl, parseTaskContent, sanitizeTeacherHtml, type Question, type Task, type TaskContent } from "@ielts-pro/shared";
+import { Badge, Card, EmptyState, Input, QuestionNavigator } from "@ielts-pro/ui";
+import { buildRenderableQuestions, createServerSupabaseClient, getPublishedTaskByIdForStudent, getSubmissionForTask, getTaskAudioUrl, parseTaskContent, sanitizeTeacherHtml, type Question, type Task, type TaskContent } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
-import { submitTaskAttempt } from "../../actions/attempts";
 import { StudentShell } from "../../components/StudentShell";
 import { WritingAnswerBox } from "../../components/WritingAnswerBox";
+import { FullscreenButton } from "./FullscreenButton";
 import { TestTimer } from "./TestTimer";
-
-
+import { TestStarter } from "./TestStarter";
+import { TestSubmitWrapper } from "./TestSubmitWrapper";
+import { HtmlTestListener } from "./HtmlTestListener";
+import { HtmlTestContent } from "./HtmlTestContent";
 
 export default async function TestPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params;
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
-  const currentGroupId = student?.group_id ?? session.group_id;
   const [task, existingSubmission] = await Promise.all([
-    getPublishedTaskByIdForStudent(supabase, taskId, currentGroupId),
+    getPublishedTaskByIdForStudent(supabase, taskId),
     getSubmissionForTask(supabase, session.id, taskId)
   ]);
   if (!task) notFound();
@@ -30,23 +30,167 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
       const bridge = `<script>
 (function(){
   var TASK_ID = ${JSON.stringify(task.id)};
-  window.submitIeltsScore = async function(result){
+  var TEST_STARTED_AT = Date.now();
+  console.log('[bridge] loaded, TASK_ID =', TASK_ID);
+
+  function extractResultsFromDOM() {
+    var byIndex = {};
+
+    function ensureQ(n) {
+      if (!byIndex[n]) byIndex[n] = { question: n, correct: null, yourAnswer: '', correctAnswer: '' };
+      return byIndex[n];
+    }
+
+    function tryCorrect(q, isCorrect, correctAnswer) {
+      var r = ensureQ(q);
+      if (isCorrect !== null && r.correct === null) r.correct = isCorrect;
+      if (correctAnswer && !r.correctAnswer) r.correctAnswer = correctAnswer;
+    }
+
+    var radioGroups = {};
+    document.querySelectorAll('input[type="radio"]').forEach(function(input) {
+      var name = input.getAttribute('name') || '';
+      if (!name) return;
+      if (!radioGroups[name]) radioGroups[name] = [];
+      radioGroups[name].push(input);
+    });
+    var radioNames = Object.keys(radioGroups);
+    radioNames.forEach(function(name, i) {
+      var inputs = radioGroups[name];
+      var checked = null;
+      inputs.forEach(function(inp) { if (inp.checked) checked = inp; });
+      var value = checked ? (checked.getAttribute('value') || '') : '';
+      var q = i + 1;
+      var r = ensureQ(q);
+      r.yourAnswer = value;
+      var questionEl = (checked || inputs[0]).closest('[data-answer]') || (checked || inputs[0]).closest('.question') || (checked || inputs[0]).closest('fieldset');
+      if (questionEl) {
+        var answerAttr = questionEl.getAttribute('data-answer') || questionEl.getAttribute('data-correct');
+        if (answerAttr) {
+          r.correctAnswer = answerAttr;
+          if (value) r.correct = value.toUpperCase() === answerAttr.toUpperCase();
+        }
+        var correctEl = questionEl.querySelector('[data-correct-answer], .correct-answer, .answer-key');
+        if (correctEl) {
+          var ca = (correctEl.textContent || '').trim();
+          if (ca) r.correctAnswer = r.correctAnswer || ca;
+          if (r.correct === null && value && r.correctAnswer) r.correct = value.toUpperCase() === r.correctAnswer.toUpperCase();
+        }
+      }
+    });
+
+    var textInputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+    textInputs.forEach(function(input, i) {
+      var value = (input.value || '').trim();
+      var q = i + 1;
+      var r = ensureQ(q);
+      if (value && !r.yourAnswer) r.yourAnswer = value;
+      var questionEl = input.closest('[data-answer]') || input.closest('.question') || input.closest('label');
+      if (questionEl) {
+        var answerAttr = questionEl.getAttribute('data-answer') || questionEl.getAttribute('data-correct');
+        if (answerAttr) {
+          r.correctAnswer = r.correctAnswer || answerAttr;
+          if (value && r.correct === null) r.correct = value.toLowerCase() === answerAttr.toLowerCase();
+        }
+        var correctEl = questionEl.querySelector('[data-correct-answer], .correct-answer, .answer-key');
+        if (correctEl) {
+          var ca = (correctEl.textContent || '').trim();
+          if (ca) r.correctAnswer = r.correctAnswer || ca;
+          if (r.correct === null && value && r.correctAnswer) r.correct = value.toLowerCase() === r.correctAnswer.toLowerCase();
+        }
+      }
+    });
+
+    var answerEls = document.querySelectorAll('[data-question-index]');
+    answerEls.forEach(function(el) {
+      var idx = parseInt(el.getAttribute('data-question-index'), 10);
+      if (isNaN(idx)) return;
+      var q = idx + 1;
+      var isCorrect = el.classList.contains('correct') || el.classList.contains('is-correct') || el.getAttribute('data-correct') === 'true';
+      var isWrong = el.classList.contains('incorrect') || el.classList.contains('wrong') || el.classList.contains('is-wrong') || el.getAttribute('data-correct') === 'false';
+      var yourEl = el.querySelector('[data-your-answer]') || el.querySelector('.your-answer');
+      var rightEl = el.querySelector('[data-correct-answer]') || el.querySelector('.correct-answer');
+      var r = ensureQ(q);
+      if (yourEl) {
+        var ya = (yourEl.textContent || '').trim();
+        if (ya && !r.yourAnswer) r.yourAnswer = ya;
+      }
+      if (rightEl) {
+        var ra = (rightEl.textContent || '').trim();
+        if (ra) r.correctAnswer = r.correctAnswer || ra;
+      }
+      tryCorrect(q, isCorrect ? true : isWrong ? false : null, null);
+    });
+
+    var rows = document.querySelectorAll('tr[data-result], .result-row, .question-result');
+    rows.forEach(function(row, i) {
+      var q = i + 1;
+      var isCorrect = row.classList.contains('correct') || row.classList.contains('is-correct') || row.querySelector('.tick, .correct-icon, .result-correct') != null;
+      var isWrong = row.classList.contains('incorrect') || row.classList.contains('wrong') || row.querySelector('.cross, .wrong-icon, .result-incorrect') != null;
+      tryCorrect(q, isCorrect ? true : isWrong ? false : null, null);
+    });
+
+    var summaryEl = document.getElementById('result-details') || document.getElementById('results-detail');
+    if (summaryEl) {
+      summaryEl.querySelectorAll('li, .result-item, tr').forEach(function(item, i) {
+        var q = i + 1;
+        var text = (item.textContent || '').toLowerCase();
+        var isCorrect = text.indexOf('correct') >= 0 || item.classList.contains('correct');
+        var isWrong = text.indexOf('incorrect') >= 0 || text.indexOf('wrong') >= 0 || item.classList.contains('wrong');
+        tryCorrect(q, isCorrect && !isWrong ? true : isWrong ? false : null, null);
+      });
+    }
+
+    var keys = Object.keys(byIndex).map(Number).sort(function(a, b) { return a - b; });
+    if (!keys.length) return null;
+    return keys.map(function(k) { return byIndex[k]; });
+  }
+
+  window.submitIeltsScore = window.submitIeltsScore || async function(result){
+    console.log('[bridge] submitIeltsScore called with', result);
     result = result || {};
+    var score = result.score, total = result.total;
+    var results = result.results || extractResultsFromDOM();
+    var timeTaken = Math.round((Date.now() - TEST_STARTED_AT) / 1000);
+    window.__ielts_submitted = true;
+    window.dispatchEvent(new CustomEvent('test-completed', { detail: { score: score, total: total, results: results, timeTaken: timeTaken } }));
     try {
-      var res = await fetch('/api/html-attempts', {
+      await fetch('/api/html-attempts', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ taskId: TASK_ID, score: result.score, total: result.total, answers: result.answers || null })
+        body: JSON.stringify({ taskId: TASK_ID, score: score, total: total, answers: result.answers || null, results: results, timeTaken: timeTaken })
       });
-      var json = await res.json();
-      if (!json || !json.ok) console.error('submitIeltsScore rejected', json);
-      return json;
     } catch (err) {
-      console.error('submitIeltsScore failed', err);
-      return { ok: false };
+      console.error('submitIeltsScore save failed', err);
     }
   };
+
+  var origCheckAnswers = window.checkAnswers;
+  if (typeof origCheckAnswers === 'function') {
+    window.checkAnswers = function() {
+      console.log('[bridge] checkAnswers called');
+      origCheckAnswers();
+      console.log('[bridge] done, submitted=', !!window.__ielts_submitted);
+      if (!window.__ielts_submitted && typeof window.submitIeltsScore === 'function') {
+        var statsEl = document.getElementById('result-stats');
+        var score = 0, total = 0;
+        if (statsEl) {
+          var strong = statsEl.querySelector('.stat-box strong');
+          if (strong) {
+            var parts = (strong.textContent || '').split('/');
+            score = parseInt(parts[0], 10) || 0;
+            total = parseInt(parts[1], 10) || 0;
+          }
+        }
+        var results = extractResultsFromDOM();
+        console.log('[bridge] forcing submitIeltsScore with', score, '/', total, 'results=', results ? results.length : 0);
+        window.submitIeltsScore({ score: score, total: total, results: results });
+      }
+    };
+  } else {
+    console.log('[bridge] checkAnswers not found on window');
+  }
 })();
 </script>`;
       htmlTest = rawHtml.includes("</body>")
@@ -54,17 +198,21 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
         : `${rawHtml}${bridge}`;
     }
 
+    const skillLabel = labelFor(task.skill);
+    const htmlContent = parseTaskContent<TaskContent>(task.content, { questions: [] });
+    const audioUrl = getTaskAudioUrl(htmlContent, task);
     return (
-      <StudentShell name={session.name}>
-        <main className="test-page html-test">
+      <StudentShell name={session.name} variant="test">
+        <main className="test-page html-test" id="test-content">
           <div className="exam-topline">
             <div>
-              <Badge tone={toneFor(task.skill)}>{labelFor(task.skill)}</Badge>
+              <Badge tone={toneFor(task.skill)}>{skillLabel}</Badge>
             </div>
             <div className="topline-actions">
               {existingSubmission?.score != null ? (
                 <span className="submission-score">Score: {existingSubmission.score}/{existingSubmission.total ?? "?"}</span>
               ) : null}
+              <FullscreenButton />
               <Link href="/dashboard" className="btn btn-secondary">Exit test</Link>
             </div>
           </div>
@@ -75,18 +223,26 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
                 <span>Your result is saved.</span>
               </div>
             </Card>
-          ) : null}
-          {!htmlTest ? (
-            <div className="html-test-viewer-status">
-              <p className="form-error">Test file is missing. Ask your teacher to re-upload it.</p>
-            </div>
           ) : (
-            <iframe
-              className="html-test-iframe"
-              srcDoc={htmlTest}
-              title={task.title}
-            />
+            <TestStarter title={task.title} skillLabel={skillLabel}>
+              <div className="exam-status-strip">
+                <span>{defaultTimeForSkill(task.skill)} minutes</span>
+                <TestTimer minutes={defaultTimeForSkill(task.skill)} />
+                <span>Auto checked</span>
+              </div>
+              {audioUrl ? (
+                <audio controls autoPlay preload="auto" src={audioUrl} className="audio-player" />
+              ) : null}
+              {!htmlTest ? (
+                <div className="html-test-viewer-status">
+                  <p className="form-error">Test file is missing. Ask your teacher to re-upload it.</p>
+                </div>
+              ) : (
+                <HtmlTestContent html={htmlTest} taskId={task.id} />
+              )}
+            </TestStarter>
           )}
+          <HtmlTestListener skill={task.skill} title={task.title} />
         </main>
       </StudentShell>
     );
@@ -102,14 +258,17 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
   const timeLimitMinutes = Number(content.time_limit_minutes || content.duration_minutes || defaultTimeForSkill(task.skill));
 
   return (
-    <StudentShell name={session.name} groupName={student?.groups?.name} variant="exam">
-      <main className="test-page">
+    <StudentShell name={session.name} variant="test">
+      <main className="test-page" id="test-content">
         <div className="exam-topline">
           <div>
             <Badge tone={toneFor(task.skill)}>{labelFor(task.skill)}</Badge>
             <h1>{task.title}</h1>
           </div>
-          <Link href="/practice" className="btn btn-secondary">Exit test</Link>
+          <div className="topline-actions">
+            <FullscreenButton />
+            <Link href="/practice" className="btn btn-secondary">Exit test</Link>
+          </div>
         </div>
 
         {existingSubmission ? (
@@ -123,74 +282,74 @@ export default async function TestPage({ params }: { params: Promise<{ taskId: s
             <Link href="/results" className="btn btn-primary">View results</Link>
           </Card>
         ) : (
-          <form action={submitTaskAttempt} className="exam-layout" id="test-answer-form" data-testid="test-answer-form">
-            <input type="hidden" name="taskId" value={task.id} />
+          <TestStarter title={task.title} skillLabel={labelFor(task.skill)} instructions={content.instructions} timeLimitMinutes={timeLimitMinutes}>
             <div className="exam-status-strip">
               <span>{answerCount || (task.skill === "writing" ? 1 : 0)} {task.skill === "writing" ? "task" : "answers"}</span>
               <TestTimer minutes={timeLimitMinutes} />
               <span>{task.skill === "writing" ? "Teacher reviewed" : "Auto checked"}</span>
             </div>
-            <section className="card passage">
-              {isFullTest ? (
-                <FullTestBrief content={content} task={task} />
-              ) : task.skill === "writing" ? (
-                <>
-                  <p className="eyebrow">Writing prompt</p>
-                  <h2>Task response</h2>
-                  <p>{content.prompt || "Write your answer for this task."}</p>
-                  {content.time_limit_minutes ? <p className="muted">Suggested time: {content.time_limit_minutes} minutes</p> : null}
-                </>
-              ) : task.skill === "listening" ? (
-                <>
-                  <p className="eyebrow">Listening audio</p>
-                  <h2>Listen and answer</h2>
-                  <p>{content.instructions || "Listen and answer the questions."}</p>
-                  {audioUrl ? (
-                    <audio controls src={audioUrl} className="audio-player" data-testid="audio-player" />
-                  ) : (
-                    <p className="form-error">No listening audio was found in this import. Ask the teacher to attach an audio URL before publishing it as Listening.</p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="eyebrow">Reading passage</p>
-                  <h2>Passage</h2>
-                  <div className="passage-content" dangerouslySetInnerHTML={{ __html: sanitizeTeacherHtml(content.passage_html || content.imported_html || content.passages?.[0]?.html || "") }} />
-                </>
-              )}
-            </section>
-            <section className="card question-panel">
-              <div className="question-panel-head">
-                <div>
-                  <p className="eyebrow">Answer sheet</p>
-                  <h2>{task.skill === "writing" ? "Your response" : `${answerCount} answer${answerCount === 1 ? "" : "s"}`}</h2>
-                  {questionCount > 0 && answerCount !== questionCount ? <p className="muted">{questionCount} imported question group{questionCount === 1 ? "" : "s"}</p> : null}
+            <TestSubmitWrapper taskId={task.id} skill={task.skill} title={task.title}>
+              <section className="card passage">
+                {isFullTest ? (
+                  <FullTestBrief content={content} task={task} />
+                ) : task.skill === "writing" ? (
+                  <>
+                    <p className="eyebrow">Writing prompt</p>
+                    <h2>Task response</h2>
+                    <p>{content.prompt || "Write your answer for this task."}</p>
+                    {content.time_limit_minutes ? <p className="muted">Suggested time: {content.time_limit_minutes} minutes</p> : null}
+                  </>
+                ) : task.skill === "listening" ? (
+                  <>
+                    <p className="eyebrow">Listening audio</p>
+                    <h2>Listen and answer</h2>
+                    <p>{content.instructions || "Listen and answer the questions."}</p>
+                    {audioUrl ? (
+<audio controls autoPlay preload="auto" src={audioUrl} className="audio-player" data-testid="audio-player" />
+                    ) : (
+                      <p className="form-error">No listening audio was found in this import. Ask the teacher to attach an audio URL before publishing it as Listening.</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="eyebrow">Reading passage</p>
+                    <h2>Passage</h2>
+                    <div className="passage-content" dangerouslySetInnerHTML={{ __html: sanitizeTeacherHtml(content.passage_html || content.imported_html || content.passages?.[0]?.html || "") }} />
+                  </>
+                )}
+              </section>
+              <section className="card question-panel">
+                <div className="question-panel-head">
+                  <div>
+                    <p className="eyebrow">Answer sheet</p>
+                    <h2>{task.skill === "writing" ? "Your response" : `${answerCount} answer${answerCount === 1 ? "" : "s"}`}</h2>
+                    {questionCount > 0 && answerCount !== questionCount ? <p className="muted">{questionCount} imported question group{questionCount === 1 ? "" : "s"}</p> : null}
+                  </div>
+                  {timeLimitMinutes ? <Badge tone="warning">{timeLimitMinutes} min</Badge> : null}
                 </div>
-                {timeLimitMinutes ? <Badge tone="warning">{timeLimitMinutes} min</Badge> : null}
-              </div>
-              {task.skill === "writing" ? (
-                <WritingAnswerBox name="writing_answer" label="Your response" placeholder="Write your IELTS response here..." minWords={content.min_words} required />
-              ) : (
-                <>
-                  {questionRows.length ? questionRows.map((row) => <QuestionInput question={row.question} index={row.index} firstAnswerNumber={row.firstAnswerNumber} key={row.index} />) : (
-                    <EmptyState
-                      title="Teacher answer sheet needs review"
-                      body="The imported HTML is saved, but the parser could not build student answer fields. Ask the teacher to review the Test Builder preview before publishing."
-                    />
-                  )}
-                  {isFullTest && writingPrompt(content) ? (
-                    <WritingAnswerBox name="full_writing_answer" label="Writing response" placeholder="Write your Task 1 and Task 2 responses here..." minWords={content.min_words} />
-                  ) : null}
-                </>
-              )}
-              <Button type="submit" data-testid="submit-answers-button">Submit answers</Button>
-            </section>
-            <aside className="card test-aside">
-              <h3>Question navigator</h3>
-              <QuestionNavigator count={answerCount} />
-              <p className="muted">Use the numbers to jump through the task. Review your answers before submitting.</p>
-            </aside>
-          </form>
+                {task.skill === "writing" ? (
+                  <WritingAnswerBox name="writing_answer" label="Your response" placeholder="Write your IELTS response here..." minWords={content.min_words} required />
+                ) : (
+                  <>
+                    {questionRows.length ? questionRows.map((row) => <QuestionInput question={row.question} index={row.index} firstAnswerNumber={row.firstAnswerNumber} key={row.index} />) : (
+                      <EmptyState
+                        title="Teacher answer sheet needs review"
+                        body="The imported HTML is saved, but the parser could not build student answer fields. Ask the teacher to review the Test Builder preview before publishing."
+                      />
+                    )}
+                    {isFullTest && writingPrompt(content) ? (
+                      <WritingAnswerBox name="full_writing_answer" label="Writing response" placeholder="Write your Task 1 and Task 2 responses here..." minWords={content.min_words} />
+                    ) : null}
+                  </>
+                )}
+              </section>
+              <aside className="card test-aside">
+                <h3>Question navigator</h3>
+                <QuestionNavigator count={answerCount} />
+                <p className="muted">Use the numbers to jump through the task. Review your answers before submitting.</p>
+              </aside>
+            </TestSubmitWrapper>
+          </TestStarter>
         )}
       </main>
     </StudentShell>
@@ -218,7 +377,7 @@ function FullTestBrief({ content, task }: { content: TaskContent; task: Task }) 
         <section>
           <Badge tone="listening">Listening</Badge>
           <h3>{listening?.title || "Listening section"}</h3>
-          {audioUrl ? <audio controls src={audioUrl} className="audio-player" data-testid="audio-player" /> : <p className="form-error">No listening audio was found in this import.</p>}
+          {audioUrl ? <audio controls autoPlay preload="auto" src={audioUrl} className="audio-player" data-testid="audio-player" /> : <p className="form-error">No listening audio was found in this import.</p>}
         </section>
         <section>
           <Badge tone="writing">Writing</Badge>

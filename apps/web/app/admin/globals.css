@@ -994,50 +994,6 @@ tr:last-child td { border-bottom: 0; }
   flex-wrap: wrap;
 }
 .inline-form .field { min-width: 180px; }
-.group-board {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.group-card {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-}
-.group-card h3 { margin: 10px 0 4px; font-size: 21px; letter-spacing: 0; }
-.task-group-board {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.task-group-card {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  padding: 16px;
-  display: grid;
-  gap: 12px;
-  align-content: start;
-}
-.task-group-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
-.task-group-head strong { font-size: 15px; }
-.task-group-checks { display: flex; flex-wrap: wrap; gap: 8px; }
-.task-group-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f8fbff;
-  padding: 8px 11px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.task-group-check input { width: 16px; height: 16px; cursor: pointer; }
 .mini-lesson-list { display: grid; gap: 6px; }
 .mini-lesson-list span {
   border-radius: 7px;
@@ -1402,7 +1358,7 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; }
-  .stats-grid, .panel-grid, .two-col, .content-command, .command-cards, .content-workspace, .quick-lesson-card, .quick-lesson-form, .studio-hero, .studio-skill-grid, .builder-layout, .publish-card, .student-access-grid, .review-workspace, .test-builder-grid, .builder-section, .mode-grid, .builder-fields-grid, .builder-fields-grid-readable, .builder-fields-grid.two-fields, .parsed-summary-grid, .preview-grid, .studio-columns, .group-board, .task-group-board, .lesson-builder-form, .assignment-row, .attention-row, .analytics-item, .settings-workspace, .settings-form, .settings-toggle-row { grid-template-columns: 1fr; }
+  .stats-grid, .panel-grid, .two-col, .content-command, .command-cards, .content-workspace, .quick-lesson-card, .quick-lesson-form, .studio-hero, .studio-skill-grid, .builder-layout, .publish-card, .student-access-grid, .review-workspace, .test-builder-grid, .builder-section, .mode-grid, .builder-fields-grid, .builder-fields-grid-readable, .builder-fields-grid.two-fields, .parsed-summary-grid, .preview-grid, .studio-columns, .lesson-builder-form, .assignment-row, .attention-row, .analytics-item, .settings-workspace, .settings-form, .settings-toggle-row { grid-template-columns: 1fr; }
   .builder-aside, .quick-lesson-panel, .settings-preview { position: static; }
   .wizard-steps { grid-template-columns: 1fr; }
   .wizard-steps span { border-right: 0; border-bottom: 1px solid var(--line); }

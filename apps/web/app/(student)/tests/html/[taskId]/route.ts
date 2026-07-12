@@ -10,8 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tas
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
   const student = await getStudentById(supabase, session.id);
-  const groupId = student?.group_id ?? session.group_id;
-  const task = await getPublishedTaskByIdForStudent(supabase, taskId, groupId);
+  const task = await getPublishedTaskByIdForStudent(supabase, taskId);
 
   if (!task || task.source_type !== "html" || !task.html_path) {
     return new NextResponse("This test is not available.", { status: 404 });

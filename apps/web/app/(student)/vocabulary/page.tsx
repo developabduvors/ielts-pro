@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentById, getStudentSubmissions, type Lesson, type Task } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentSubmissions, type Lesson, type Task } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../components/StudentShell";
 import { completionState, labelForSkill, normaliseSkill, taskSummary, toneForSkill } from "../student-utils";
@@ -8,17 +8,15 @@ import { completionState, labelForSkill, normaliseSkill, taskSummary, toneForSki
 export default async function VocabularyPage() {
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const student = await getStudentById(supabase, session.id);
-  const currentGroupId = student?.group_id ?? session.group_id;
   const [{ lessons, tasks }, submissions] = await Promise.all([
-    getPublishedTasksForStudent(supabase, currentGroupId),
+    getPublishedTasksForStudent(supabase),
     getStudentSubmissions(supabase, session.id)
   ]);
   const vocabularyTasks = tasks.filter((task) => normaliseSkill(task.skill) === "vocabulary");
   const progress = completionState(vocabularyTasks, submissions);
 
   return (
-    <StudentShell name={session.name} groupName={student?.groups?.name} sectionLabel="Vocabulary" sectionDescription="Word drills, article vocabulary, and teacher checks">
+    <StudentShell name={session.name} sectionLabel="Vocabulary" sectionDescription="Word drills, article vocabulary, and teacher checks">
       <main className="student-page">
         <section className="student-skill-hero tone-vocabulary">
           <div>

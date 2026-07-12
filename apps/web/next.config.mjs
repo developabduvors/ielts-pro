@@ -7,6 +7,9 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 config({ path: resolve(repoRoot, ".env.local") });
 
 const nextConfig = {
+  serverActions: {
+    bodySizeLimit: "4mb"
+  },
   turbopack: { root: repoRoot },
   transpilePackages: ["@ielts-pro/shared", "@ielts-pro/ui"],
   // Client-side router cache: keep visited pages "fresh" so navigating back to a

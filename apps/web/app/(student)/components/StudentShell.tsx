@@ -5,14 +5,21 @@ import { StudentNav } from "./StudentNav";
 
 type StudentShellProps = {
   name: string;
-  groupName?: string | null;
   sectionLabel?: string;
   sectionDescription?: string;
-  variant?: "app" | "exam";
+  variant?: "app" | "exam" | "test";
   children: ReactNode;
 };
 
-export function StudentShell({ name, groupName, sectionLabel = "Student workspace", sectionDescription = "Practice, results, and teacher feedback", variant = "app", children }: StudentShellProps) {
+export function StudentShell({ name, sectionLabel = "Student workspace", sectionDescription = "Practice, results, and teacher feedback", variant = "app", children }: StudentShellProps) {
+  if (variant === "test") {
+    return (
+      <div className="student-test-shell">
+        {children}
+      </div>
+    );
+  }
+
   if (variant === "exam") {
     return (
       <div className="student-exam-shell">
@@ -44,7 +51,6 @@ export function StudentShell({ name, groupName, sectionLabel = "Student workspac
           <StudentNav />
         </nav>
         <div className="student-sidebar-footer">
-          <span>{groupName || "Group pending"}</span>
           <form action={studentLogout}>
             <button aria-label="Logout from student portal">Logout</button>
           </form>
@@ -77,7 +83,6 @@ export function StudentShell({ name, groupName, sectionLabel = "Student workspac
             <Link className="student-topbar-user" href="/profile">
               <div className="student-topbar-user-text">
                 <strong>{name}</strong>
-                <span>{groupName || "Group pending"}</span>
               </div>
               <span className="student-topbar-avatar" aria-hidden="true">{initials}</span>
             </Link>

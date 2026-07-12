@@ -1,15 +1,14 @@
-import { Badge, Button, Card, EmptyState, Input, Select, StatCard, Table } from "@ielts-pro/ui";
-import { createServerSupabaseClient, getAllGroups, getAllStudents, getStudentDeviceSessions, getWritingSubmissions } from "@ielts-pro/shared";
+import { Badge, Button, Card, EmptyState, Input, StatCard, Table } from "@ielts-pro/ui";
+import { createServerSupabaseClient, getAllStudents, getStudentDeviceSessions, getWritingSubmissions } from "@ielts-pro/shared";
 import { requireAdminSession } from "@/lib/admin-session";
-import { createStudentAccessAction, revokeAllDevicesAction, revokeDeviceSessionAction, toggleStudentAccessAction, updateStudentGroupAction } from "../actions/lms";
+import { createStudentAccessAction, revokeAllDevicesAction, revokeDeviceSessionAction, toggleStudentAccessAction } from "../actions/lms";
 import { AdminShell } from "../components/AdminShell";
 import { CopyButton } from "../components/CopyButton";
 
 export default async function StudentsPage() {
   const admin = await requireAdminSession();
   const supabase = createServerSupabaseClient();
-  const [groups, students, submissions] = await Promise.all([
-    getAllGroups(supabase),
+  const [students, submissions] = await Promise.all([
     getAllStudents(supabase),
     getWritingSubmissions(supabase)
   ]);
@@ -68,13 +67,6 @@ export default async function StudentsPage() {
               Max devices
               <Input name="max_devices" type="number" min="1" placeholder="Optional" />
             </label>
-            <label>
-              Group
-              <Select name="group_id" defaultValue="">
-                <option value="">No group yet</option>
-                {groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}
-              </Select>
-            </label>
             <Button>Create access</Button>
           </form>
         </Card>
@@ -94,7 +86,7 @@ export default async function StudentsPage() {
       <Card className="panel">
         {students.length ? (
           <Table>
-            <thead><tr><th>Student</th><th>Access ID</th><th>Group</th><th>Status</th><th>Progress</th><th>Devices</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Student</th><th>Access ID</th><th>Status</th><th>Progress</th><th>Devices</th><th>Actions</th></tr></thead>
             <tbody>
               {students.map((student) => {
                 const studentSubmissions = submissionsByStudent.get(student.id) || [];
@@ -106,7 +98,7 @@ export default async function StudentsPage() {
                         <strong>{student.name}</strong>
                         <CopyButton value={student.name} label="Copy name" />
                       </div>
-                      <p className="table-note">{student.groups?.name || "No group"} · Last login {formatDate(student.last_login_at)}</p>
+                      <p className="table-note">Last login {formatDate(student.last_login_at)}</p>
                     </td>
                     <td>
                       <div className="copy-row">
@@ -114,16 +106,6 @@ export default async function StudentsPage() {
                         <CopyButton value={student.student_code} label="Copy ID" />
                       </div>
                       <CopyButton value={`${student.name}\n${student.student_code}`} label="Copy login" />
-                    </td>
-                    <td>
-                      <form action={updateStudentGroupAction} className="inline-form">
-                        <input type="hidden" name="student_id" value={student.id} />
-                        <Select name="group_id" defaultValue={student.group_id || ""}>
-                          <option value="">No group</option>
-                          {groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}
-                        </Select>
-                        <Button variant="secondary">Move</Button>
-                      </form>
                     </td>
                     <td>{deviceSessionsAvailable ? (isOpen(student) ? <Badge tone="success">Open</Badge> : <Badge tone="warning">Closed</Badge>) : <Badge tone="warning">Legacy</Badge>}</td>
                     <td>

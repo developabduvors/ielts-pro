@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
-import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentById, getStudentSubmissions } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getPublishedTasksForStudent, getStudentSubmissions } from "@ielts-pro/shared";
 import { requireStudentSession } from "@/lib/session";
 import { StudentShell } from "../../components/StudentShell";
 import {
@@ -44,19 +44,14 @@ export default async function SkillPracticePage({ params }: { params: Promise<{ 
   const config = skillPages[skill];
   const session = await requireStudentSession();
   const supabase = createServerSupabaseClient();
-  const [student, submissions] = await Promise.all([
-    getStudentById(supabase, session.id),
-    getStudentSubmissions(supabase, session.id)
-  ]);
-  const currentGroupId = student?.group_id ?? session.group_id;
-  const { lessons, tasks } = await getPublishedTasksForStudent(supabase, currentGroupId);
+  const submissions = await getStudentSubmissions(supabase, session.id);
+  const { lessons, tasks } = await getPublishedTasksForStudent(supabase);
   const skillTasks = tasksForSkill(tasks, config.db);
   const progress = completionState(skillTasks, submissions);
 
   return (
     <StudentShell
       name={session.name}
-      groupName={student?.groups?.name}
       sectionLabel={config.label}
       sectionDescription={config.copy}
     >
@@ -109,7 +104,7 @@ export default async function SkillPracticePage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                   <span className={`student-status-pill ${submitted ? "is-done" : ""}`}>{submitted ? "Submitted" : "Open"}</span>
-                  <Link className="student-primary-button" href={`/tests/${task.id}`} target="_blank" rel="noopener noreferrer">
+                  <Link className="student-primary-button" href={`/tests/${task.id}`}>
                     {submitted ? "Open result" : "Start test"}
                   </Link>
                 </article>
@@ -118,7 +113,7 @@ export default async function SkillPracticePage({ params }: { params: Promise<{ 
             {!skillTasks.length ? (
               <div className="student-empty-card">
                 <h3>No {config.label.toLowerCase()} tasks yet</h3>
-                <p>{currentGroupId ? "When your teacher publishes this skill, it will appear here." : "Your access ID needs a group assignment before practice appears."}</p>
+                <p>When your teacher publishes this skill, it will appear here.</p>
                 <Link className="student-secondary-button" href="/practice">Back to skills</Link>
               </div>
             ) : null}

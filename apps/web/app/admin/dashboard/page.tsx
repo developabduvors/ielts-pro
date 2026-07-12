@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, EmptyState, ErrorState, StatCard, Table } from "@ielts-pro/ui";
-import { createServerSupabaseClient, getAdminDashboardStats } from "@ielts-pro/shared";
+import { createServerSupabaseClient, getAdminDashboardStats, scoreToBand } from "@ielts-pro/shared";
 import { requireAdminSession } from "@/lib/admin-session";
 import { AdminShell } from "../components/AdminShell";
 
@@ -27,10 +27,15 @@ export default async function AdminDashboardPage() {
       </AdminShell>
     );
   }
-  const published = stats.lessons.filter((lesson) => lesson.published).length;
-  const draftLessons = stats.lessons.filter((lesson) => !lesson.published).length;
   const activeStudents = stats.students.filter((student) => student.is_active !== false && student.access_status !== "closed").length;
   const draftContent = stats.tasks.filter((task) => !task.lessons?.published || task.content_status === "draft").length;
+  const scoredSubmissions = stats.submissions.filter((s) => {
+    const skill = (s.tasks?.skill || "").toLowerCase();
+    return (skill === "reading" || skill === "listening") && s.score != null && s.total;
+  });
+  const avgBand = scoredSubmissions.length
+    ? Number((scoredSubmissions.reduce((sum, s) => sum + (scoreToBand(s.tasks?.skill || "", Number(s.score), Number(s.total)) ?? 0), 0) / scoredSubmissions.length).toFixed(1))
+    : null;
 
   return (
     <AdminShell email={admin.email}>
@@ -38,7 +43,7 @@ export default async function AdminDashboardPage() {
         <div>
           <p className="eyebrow">Dashboard</p>
           <h1>Operate the LMS from one clear overview.</h1>
-          <p className="muted">Students, groups, content, lessons, submissions, and writing review status are all pulled from Supabase.</p>
+          <p className="muted">Students, content, lessons, submissions, and writing review status are all pulled from Supabase.</p>
         </div>
         <div className="page-actions">
           <Link className="btn btn-primary" href="/admin/full-tests/new">Import test</Link>
@@ -48,8 +53,7 @@ export default async function AdminDashboardPage() {
 
       <section className="stats-grid">
         <StatCard label="Students" value={stats.students.length} note={`${activeStudents} open access`} />
-        <StatCard label="Groups" value={stats.groups.length} note="student paths" />
-        <StatCard label="Published lessons" value={published} note={`${draftLessons} drafts`} />
+        <StatCard label="Avg Band Score" value={avgBand ?? "—"} note={`${scoredSubmissions.length} scored submissions`} />
         <StatCard label="Draft content" value={draftContent} note="waiting for attach/publish" />
       </section>
 
@@ -57,7 +61,6 @@ export default async function AdminDashboardPage() {
         <StatCard label="Pending writing" value={stats.pendingWriting.length} note="needs teacher review" />
         <StatCard label="Recent submissions" value={stats.submissions.length} note="all attempts" />
         <StatCard label="Tasks" value={stats.tasks.length} note="reading/listening/writing" />
-        <StatCard label="No group" value={stats.students.filter((student) => !student.group_id).length} note="assign before lessons show" />
       </section>
 
       <div className="panel-grid">
@@ -95,34 +98,13 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="quick-action-list">
             <Link href="/admin/students" className="quick-action">Add student access</Link>
-            <Link href="/admin/lessons#groups" className="quick-action">Create or view groups</Link>
             <Link href="/admin/full-tests/new" className="quick-action">Import HTML test</Link>
-            <Link href="/admin/lessons#lesson-builder" className="quick-action">Create lesson</Link>
             <Link href="/admin/submissions" className="quick-action">Open writing review</Link>
           </div>
         </Card>
       </div>
 
       <div className="panel-grid dashboard-lower">
-        <Card className="panel">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Needs attention</p>
-              <h2>Draft lessons</h2>
-            </div>
-          </div>
-          <div className="lesson-list">
-            {stats.lessons.filter((lesson) => !lesson.published).slice(0, 6).map((lesson) => (
-              <div className="attention-row" key={lesson.id}>
-                <strong>{lesson.title}</strong>
-                <span>{lesson.group_id ? "Group assigned" : "No group"}</span>
-                <Link href="/admin/lessons#lesson-builder">Open</Link>
-              </div>
-            ))}
-            {!draftLessons ? <EmptyState title="No draft lessons" body="New lesson drafts will appear here before publishing." /> : null}
-          </div>
-        </Card>
-
         <Card className="panel">
           <div className="section-head">
             <div>
